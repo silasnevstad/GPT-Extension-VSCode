@@ -1,0 +1,57 @@
+{
+  "name": "gpthelper",
+  "displayName": "GPTHelper",
+  "description": "Use GPT directly inside Visual Studio Code to help explain and debug any piece of code within a click.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:gpthelper.analyzeSelection",
+    "onCommand:gpthelper.debugSelection",
+    "onCommand:gpthelper.optimizeSelection"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gpthelper.analyzeSelection",
+        "title": "Explain Code"
+      },
+      {
+        "command": "gpthelper.debugSelection",
+        "title": "Debug Code"
+      },
+      {
+        "command": "gpthelper.optimizeSelection",
+        "title": "Optimize Code"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.0.1",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.75.0",
+    "@vscode/test-electron": "^2.2.2",
+    "eslint": "^8.33.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.1.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "axios": "^1.3.3",
+    "dotenv": "^16.0.3",
+    "openai": "^3.1.0"
+  }
+}
+
+
