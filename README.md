@@ -1,10 +1,14 @@
 # GPT Helper README
 
-Use this extension to have OpenAI's Chat GPT-3 directly help you with your code inside of Visual Studio Code. Select any piece of code you want help on, press Cmd + Shift + P, and either type "Explain Code", "Debug Code", or "Optimize Code". Press enter and GPT-3 will open a new file with its response.
+GPT at your finger tips.
 
-To get more accurate repsonses you can include comment, nudging GPT-3 in the right direction.
+Use this extension to have OpenAI's Chat GPT-3 directly help you with your code. Ask it questions and have it debug, anaylze and explain your code.
+
+To use it select any piece of code,, press Cmd + Shift + P, and either type "Ask GPT", "Explain Code", "Debug Code", or "Optimize Code". Press enter and GPT-3 will open a new file with its response.
 
 ## Features
+
+AskGPT - Ask GPT-3 any question you want.
 
 Explain Code - Have GPT-3 explain any piece of code (classes, functions, etc.)
 
