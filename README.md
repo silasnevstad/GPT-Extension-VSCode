@@ -1,4 +1,4 @@
-# GPT Helper README
+# GPT Helper
 
 GPT at your finger tips.
 
