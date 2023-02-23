@@ -6,7 +6,7 @@ Use this extension to have OpenAI's Chat GPT directly help you with your code. A
 
 ### Instructions
 - Highlight question or code
-- Press <span style="color:orange">cmd + shift + p</span>
+- Press ```cmd + shift + p```
 
 To use it select any piece of code and press Cmd + Shift + P, either type "Ask GPT", "Explain Code", "Debug Code", or "Optimize Code". Press enter and new file opens with GPT's response.
 
