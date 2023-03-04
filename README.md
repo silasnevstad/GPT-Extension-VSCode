@@ -36,7 +36,9 @@ Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit
 
 AskGPT - Ask GPT-3 any question you want.
 
-GPT: Set API Key - Ask GPT-3 any question you want.
+GPT: Set API Key - Enter an API key to use.
+
+GPT: Change Token Limit - Enter a new limit on the API. (Can't be default API key)
 
 ## Known Issues
 
