@@ -7,6 +7,7 @@ Use this extension to have OpenAI's Chat GPT directly help you with your code. A
 ### Instructions
 * Highlight question or code
 * Press ```cmd + shift + p```
+* Or press ```cmd + shift + p``` (Command Palette)
 * Type 'Ask GPT'
 
 The response is opens in a new file.
