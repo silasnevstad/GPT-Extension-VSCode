@@ -2,7 +2,8 @@
   "name": "gpthelper",
   "displayName": "GPT",
   "description": "Use GPT inside VS Code",
-  "version": "0.0.5",
+  "icon": "icon.jpg",
+  "version": "0.0.7",
   "engines": {
     "vscode": "^1.75.0"
   },
