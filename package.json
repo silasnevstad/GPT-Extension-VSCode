@@ -1,8 +1,8 @@
 {
   "name": "gpthelper",
-  "displayName": "GPTHelper",
-  "description": "Use GPT directly inside Visual Studio Code to help explain and debug any piece of code within a click.",
-  "version": "0.0.2",
+  "displayName": "GPT",
+  "description": "Use GPT inside VS Code",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -11,32 +11,24 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:gpthelper.analyzeSelection",
-    "onCommand:gpthelper.debugSelection",
-    "onCommand:gpthelper.optimizeSelection",
-    "onCommand:gpthelper.askGPT"
+    "onCommand:extension.askGPT"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "gpthelper.analyzeSelection",
-        "title": "Explain Code"
-      },
-      {
-        "command": "gpthelper.debugSelection",
-        "title": "Debug Code"
-      },
-      {
-        "command": "gpthelper.optimizeSelection",
-        "title": "Optimize Code"
-      },
-      {
-        "command": "gpthelper.askGPT",
+        "command": "extension.askGPT",
         "title": "Ask GPT"
       }
     ]
   },
+  "keybindings": [
+    {
+      "command": "extension.askGPT",
+      "key": "alt+shift+i",
+      "mac": "alt+shift+i"
+    }
+  ],
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
@@ -63,5 +55,3 @@
     "url": "git://github.com/silasnevstad/GPT-Extension-VSCode"
   }
 }
-
-
