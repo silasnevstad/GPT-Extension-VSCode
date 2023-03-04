@@ -46,6 +46,6 @@ Let me know of any issues.
 
 ## Release Notes
 
-### 1.0.0
+### 0.1.2
 
-Initial release of GPT Helper.
+Implemented individual API key use and flexible token limit.
