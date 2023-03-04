@@ -6,6 +6,8 @@ Use this extension to have OpenAI's Chat GPT directly help you with your code. A
 
 ![](demo.mov)
 
+![](demo2.mov)
+
 ### Instructions
 * Highlight question or code
 * Press ```cmd + shift + i```
