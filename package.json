@@ -3,7 +3,7 @@
   "displayName": "GPT",
   "description": "Use GPT inside VS Code",
   "icon": "icon.jpg",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -12,7 +12,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:extension.askGPT"
+    "onCommand:extension.askGPT",
+    "onCommand:gpthelper.getLimit",
+    "onCommand:gpthelper.changeLimit"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -20,6 +22,14 @@
       {
         "command": "extension.askGPT",
         "title": "Ask GPT"
+      },
+      {
+        "command": "gpthelper.getLimit",
+        "title": "GPT: Set API Key"
+      },
+      {
+        "command": "gpthelper.changeLimit",
+        "title": "GPT: Change Token Limit"
       }
     ]
   },
