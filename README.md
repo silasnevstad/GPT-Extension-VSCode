@@ -4,6 +4,8 @@ GPT inside of Visual Studio Code
 
 Use this extension to have OpenAI's Chat GPT directly help you with your code. Ask it questions and have it debug, anaylze and explain your code.
 
+![](demo.mov)
+
 ### Instructions
 * Highlight question or code
 * Press ```cmd + shift + p```
