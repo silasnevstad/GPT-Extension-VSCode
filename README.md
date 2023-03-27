@@ -4,8 +4,6 @@ GPT inside of Visual Studio Code
 
 ![](demo.mov)
 
-Use this extension to have OpenAI's Chat GPT directly help you with your code. Ask it questions and have it debug, anaylze and explain your code.
-
 ![](demo2.mov)
 
 ![](demo3.mov)
@@ -27,21 +25,24 @@ If you wish to set your own API key:
 3. Select "View API Keys" from the drop-down menu.
 4. Click the button "Create a new key."
 
--Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
+- Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
 To select model:
 
--Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
+- Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
 
 To change the token limit (only avaible on davinci model):
 
--Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
+- Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
 
 ## Models
 
 GPT-4: Currently in a limited beta and only accessible to those who have been granted access. Join the waitlist here: ![https://openai.com/waitlist/gpt-4]
+
 GPT-4-32k: Same as GPT-4 but with 4x the context length.
+
 GPT-3.5-Turbo (Default) (Max Tokens: 4096)
+
 Text-Davinci-003 (Max Tokens: 4097)
 
 ## Features
