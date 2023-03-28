@@ -3,8 +3,8 @@ const axios = require('axios').default;
 const { Configuration, OpenAIApi } = require("openai");
 require('dotenv').config()
 
-let shared_key = "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"
-let private_key = "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"
+let shared_key = "API-KEY-HERE"
+let private_key = "API-KEY-HERE"
 let max_tokens = 64
 
 var gpt_model = "gpt-3.5-turbo"
