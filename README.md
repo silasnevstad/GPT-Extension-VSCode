@@ -56,7 +56,7 @@ GPT: Set API Key - Enter an API key to use.
 
 GPT: Change Model - Select from given models.
 
-GPT: Change Token Limit - Enter a new limit on the API. (Can't be default API key)
+GPT: Change Token Limit (Only Davinci) - Enter a new limit on the API. (Can't be default API key)
 
 ## Known Issues
 
