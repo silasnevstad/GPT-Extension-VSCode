@@ -2,11 +2,11 @@
 
 GPT inside of Visual Studio Code
 
-![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo1.gif)
+![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
-![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo2.gif)
+![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo2.gif?raw=true)
 
-![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo3.gif)
+![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo3.gif?raw=true)
 
 ## Instructions
 * Highlight question or code
