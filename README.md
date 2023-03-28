@@ -37,7 +37,7 @@ To change the token limit (only avaible on davinci model):
 
 ## Models
 
-GPT-4: Currently in a limited beta and only accessible to those who have been granted access. Join the waitlist here: ![Link](https://openai.com/waitlist/gpt-4)
+GPT-4: Currently in a limited beta and only accessible to those who have been granted access. Join the waitlist here: [Link](https://openai.com/waitlist/gpt-4)
 
 GPT-4-32k: Same as GPT-4 but with 4x the context length.
 
