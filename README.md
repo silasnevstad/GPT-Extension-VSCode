@@ -2,14 +2,11 @@
 
 GPT inside of Visual Studio Code
 
-<video src="demo.mov">
-</video>
+![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo1.gif)
 
-<video src="demo2.mov">
-</video>
+![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo2.gif)
 
-<video src="demo3.mov">
-</video>
+![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo3.gif)
 
 ## Instructions
 * Highlight question or code
