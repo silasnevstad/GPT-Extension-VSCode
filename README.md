@@ -2,11 +2,14 @@
 
 GPT inside of Visual Studio Code
 
-![](demo.mov)
+<video src="demo.mov">
+</video>
 
-![](demo2.mov)
+<video src="demo2.mov">
+</video>
 
-![](demo3.mov)
+<video src="demo3.mov">
+</video>
 
 ## Instructions
 * Highlight question or code
