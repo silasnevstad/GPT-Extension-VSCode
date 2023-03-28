@@ -57,11 +57,24 @@ GPT: Change Token Limit - Enter a new limit on the API. (Can't be default API ke
 
 ## Known Issues
 
-Let me know of any issues.
+Shared API key reaches its monthly limit somtimes, in which case, you can add your own API key.
+
+Let me know of any other issues.
 
 ## Release Notes
 
-0.1.5 - GPT-4 Added
+### 0.1.5
+GPT-4 Added
+
+### 0.1.3
+Added Error handling for shared API key limit reached.
+
+### 0.1.2
+Implemented individual API key use and flexible token limit.
+
+### 0.1.0
+Initial Release
+
 
 ### 0.1.2
 
