@@ -9,7 +9,7 @@ GPT inside of Visual Studio Code
 * Open Command Palette (```cmd + shift + p```)
 * Type 'Ask GPT'
 
-The response is opens in a new file.
+The response is opens in a side panel.
 
 ## Set Up
 By default, the extension uses a shared API key, and limits tokens to 64 per response. 
