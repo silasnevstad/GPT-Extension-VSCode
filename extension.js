@@ -4,7 +4,7 @@ const { Configuration, OpenAIApi } = require("openai");
 require('dotenv').config()
 
 let shared_key = "API-KEY-HERE"
-let private_key = "API-KEY-HERE"
+var private_key = "API-KEY-HERE"
 let max_tokens = 64
 
 var gpt_model = "gpt-3.5-turbo"
@@ -21,6 +21,8 @@ let max_tokens_options = {
 	"gpt-4": 8192,
 	"gpt-4-32k": 32768,
 }
+
+let chatHistory = [];
 
 function activate(context) {
 	
@@ -39,6 +41,7 @@ function activate(context) {
 
 		const selection = editor.selection;
 		const text = editor.document.getText(selection); // Get the text from the selection
+		const messages = [...chatHistory, { role: 'user', content: `${text}` }];
 
 		vscode.window.withProgress({ // Show a progress bar while the request is being made
 			location: vscode.ProgressLocation.Notification,
@@ -72,8 +75,11 @@ function activate(context) {
 					return;
 				}
 
+				chatHistory.push({ role: 'user', content: text });
+				chatHistory.push({ role: 'assistant', content: explanation });
+
 			  	const explanationEditor = await vscode.workspace.openTextDocument({ content: explanation, language: "text" });
-			  	await vscode.window.showTextDocument(explanationEditor);
+			  	await vscode.window.showTextDocument(explanationEditor, { viewColumn: vscode.ViewColumn.Beside });
 			} catch (err) {
 				if (gpt_model === "gpt-4" || gpt_model === "gpt-4-32k") {
 					vscode.window.showInformationMessage('GPT-4 is currently in a limited beta and only accessible to those who have been granted access. Please check the OpenAI website for more information.');
@@ -155,13 +161,151 @@ function activate(context) {
 		vscode.window.showInformationMessage(`Request limit set to ${newLimitInt}`);
 	});
 
+	const showChatHistory = vscode.commands.registerCommand('gpthelper.showChatHistory', async () => {
+		const chatHistoryText = chatHistory
+		  .map((message, index) => `${message.role === 'user' ? 'User' : 'GPT'}: ${message.content}`)
+		  .join('\n\n');
+	  
+		if (!chatHistoryText) {
+		  vscode.window.showInformationMessage('No chat history available.');
+		  return;
+		}
+	  
+		const chatHistoryEditor = await vscode.workspace.openTextDocument({ content: chatHistoryText, language: 'text' });
+		await vscode.window.showTextDocument(chatHistoryEditor, { viewColumn: vscode.ViewColumn.Beside });
+	});
+
+	const clearChatHistory = vscode.commands.registerCommand('gpthelper.clearChatHistory', async () => {
+		chatHistory = [];
+		vscode.window.showInformationMessage('Chat history cleared.');
+	});
+	
+	  
     // Register the commands with VS Code
-    context.subscriptions.push(askGPT, setKey, changeLimit, changeModel);
+    context.subscriptions.push(askGPT, setKey, changeLimit, changeModel, showChatHistory);
 }
+
+async function sendGPTRequest(text) {
+	// Initialize the OpenAI API
+	const configuration = new Configuration({ apiKey: private_key });
+	const openai = new OpenAIApi(configuration);
+  
+	// Add the previous chat history to the API request
+	const messages = [...chatHistory, { role: "user", content: `${text}` }];
+  
+	try {
+	  let completion, explanation;
+	  if (gpt_model === "text-davinci-003") {
+		completion = await openai.createCompletion({
+		  model: "text-davinci-003",
+		  prompt: `${text}`,
+		  temperature: 0.5,
+		  max_tokens: max_tokens,
+		  top_p: 1,
+		  frequency_penalty: 0.3,
+		  presence_penalty: 0,
+		});
+		explanation = completion.data.choices[0].text;
+	  } else {
+		completion = await openai.createChatCompletion({
+		  model: gpt_model,
+		  messages: messages,
+		});
+		explanation = completion.data.choices[0].message.content;
+	  }
+  
+	  if (!isSucessful(completion)) {
+		vscode.window.showErrorMessage(`Error getting response from GPT: Please check your API key`);
+		return null;
+	  }
+  
+	  return explanation;
+	} catch (err) {
+	  if (gpt_model === "gpt-4" || gpt_model === "gpt-4-32k") {
+		vscode.window.showInformationMessage(
+		  "GPT-4 is currently in a limited beta and only accessible to those who have been granted access. Please check the OpenAI website for more information."
+		);
+	  } else {
+		vscode.window.showErrorMessage(`Error explaining selection: ${err.message}`);
+	  }
+	  return null;
+	}
+  }
+  
 
 function isSucessful(response) {
 	return response.status === 200; // 200 is the status code for a successful request
 }
+
+function createChatPanel() {
+	const panel = vscode.window.createWebviewPanel(
+	  'gptChat',
+	  'GPT Chat',
+	  vscode.ViewColumn.Beside,
+	  { enableScripts: true }
+	);
+  
+	panel.webview.html = getChatHtml();
+	return panel;
+}
+
+function updateChatMessages(panel) {
+	const chatMessagesHtml = chatHistory
+	  .map((message) =>
+		`<div class="message"><span class="${message.role}">${message.role === 'user' ? 'User' : 'Assistant'}:</span> ${
+		  message.content
+		}</div>`
+	  )
+	  .join('');
+  
+	panel.webview.postMessage({ type: 'updateMessages', content: chatMessagesHtml });
+}
+  
+function getChatHtml() {
+
+	return `
+	  	<!DOCTYPE html>
+	  	<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>GPT Chat</title>
+				<style>
+					body { font-family: sans-serif; }
+					#messages { height: 75vh; overflow-y: scroll; padding: 1rem; border: 1px solid #ccc; }
+					.message { margin-bottom: 1rem; }
+					.user { font-weight: bold; color: #007ACC; }
+					.assistant { font-weight: bold; color: #A31515; }
+					#input-form { display: flex; margin-top: 1rem; }
+					#input-box { flex-grow: 1; }
+				</style>
+			</head>
+			<body>
+				<div id="messages"></div>
+				<form id="input-form">
+					<input id="input-box" type="text" />
+					<button type="submit">Send</button>
+				</form>
+				<script>
+					const vscode = acquireVsCodeApi();
+					// ... (existing code)
+
+					// Handle incoming messages from the extension
+					window.addEventListener('message', (event) => {
+					const message = event.data;
+					switch (message.type) {
+						case 'updateMessages':
+						document.getElementById('messages').innerHTML = message.content;
+						break;
+					}
+					});
+				</script>
+			</body>
+	  	</html>
+	`;
+}
+  
+  
 
 function deactivate() {}
 
