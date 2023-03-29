@@ -3,7 +3,7 @@
   "displayName": "GPT",
   "description": "Use GPT inside VS Code",
   "icon": "icon.jpg",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -15,7 +15,9 @@
     "onCommand:extension.askGPT",
     "onCommand:gpthelper.setKey",
     "onCommand:gpthelper.changeLimit",
-    "onCommand:gpthelper.changeModel"
+    "onCommand:gpthelper.changeModel",
+    "onCommand:gpthelper.showChatHistory",
+    "onCommand:gpthelper.clearChatHistory"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -35,6 +37,28 @@
       {
         "command": "gpthelper.changeModel",
         "title": "GPT: Change Model"
+      },
+      {
+        "command": "gpthelper.showChatHistory",
+        "title": "GPT: Show Chat History"
+      },
+      {
+        "command": "gpthelper.clearChatHistory",
+        "title": "GPT: Clear Chat History"
+      }
+    ]
+  },
+  "menus": {
+    "editor/context": [
+      {
+        "command": "gpthelper.askGPT",
+        "group": "gptCommands",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "gpthelper.showChatHistory",
+        "group": "gptCommands",
+        "when": "editorHasSelection"
       }
     ]
   },
