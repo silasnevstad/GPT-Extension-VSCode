@@ -1,12 +1,8 @@
-# GPT Helper
+# GPT
 
 GPT inside of Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
-
-![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo2.gif?raw=true)
-
-![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo3.gif?raw=true)
 
 ## Instructions
 * Highlight question or code
@@ -55,6 +51,10 @@ GPT: Change Model - Select from given models.
 
 GPT: Change Token Limit (Only Davinci) - Enter a new limit on the API. (Can't be default API key)
 
+GPT: Show Chat History - Shows your chat history.
+
+GPT: Clear Chat History - Clears the chat history.
+
 ## Known Issues
 
 Shared API key reaches its monthly limit somtimes, in which case, you can add your own API key.
@@ -62,6 +62,10 @@ Shared API key reaches its monthly limit somtimes, in which case, you can add yo
 Let me know of any other issues.
 
 ## Release Notes
+
+### 0.2.0
+Chat History Added
+
 
 ### 0.1.5
 GPT-4 Added
