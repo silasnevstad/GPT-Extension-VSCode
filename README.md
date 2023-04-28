@@ -9,12 +9,10 @@ GPT inside of Visual Studio Code
 * Open Command Palette (```cmd + shift + p```)
 * Type 'Ask GPT'
 
-The response is opens in a side panel.
+GPT's response can either be opened in a new file or have it replace the highlighted question.
 
 ## Set Up
-By default, the extension uses a shared API key, and limits tokens to 64 per response. 
-
-If you wish to set your own API key:
+To set your own API key:
 
 1. Go to OpenAI's website to create one.
 2. Once logged in, click on your account in the top right corner.
@@ -55,6 +53,8 @@ GPT: Show Chat History - Shows your chat history.
 
 GPT: Clear Chat History - Clears the chat history.
 
+GPT: Change Output Mode - Switchs the output mode, either opening in a new file, or replacing the question.
+
 ## Known Issues
 
 Shared API key reaches its monthly limit somtimes, in which case, you can add your own API key.
@@ -63,9 +63,14 @@ Let me know of any other issues.
 
 ## Release Notes
 
+### 0.3.0
+Removed Shared API Key due to personal limit having been reached.
+
+### 0.2.2
+Now Compatible with VSCode 1.7^
+
 ### 0.2.0
 Chat History Added
-
 
 ### 0.1.5
 GPT-4 Added
@@ -79,7 +84,8 @@ Implemented individual API key use and flexible token limit.
 ### 0.1.0
 Initial Release
 
-
 ### 0.1.2
-
 Implemented individual API key use and flexible token limit.
+
+
+#### Venmo: silasnevstad (to help sponsor the shared api key with gpt-4 privelages)
