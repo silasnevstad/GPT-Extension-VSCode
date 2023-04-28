@@ -88,4 +88,4 @@ Initial Release
 Implemented individual API key use and flexible token limit.
 
 
-#### Venmo: silasnevstad (to help sponsor the shared api key with gpt-4 privelages)
+##### Venmo: silasnevstad (to help sponsor the shared api key with gpt-4 privelages)
