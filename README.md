@@ -31,37 +31,35 @@ To change the token limit (only avaible on davinci model):
 
 ## Models
 
-GPT-4: Currently in a limited beta and only accessible to those who have been granted access. Join the waitlist here: [Link](https://openai.com/waitlist/gpt-4)
-
-GPT-4-32k: Same as GPT-4 but with 4x the context length.
-
-GPT-3.5-Turbo (Default) (Max Tokens: 4096)
-
-Text-Davinci-003 (Max Tokens: 4097)
+- GPT-4-Turbo
+- GPT-4
+- GPT-3.5-Turbo
+- Text-Davinci-003
 
 ## Features
 
-AskGPT - Ask GPT any question you want.
+- AskGPT - Ask GPT any question you want.
 
-GPT: Set API Key - Enter an API key to use.
+- GPT: Set API Key - Enter an API key to use.
 
-GPT: Change Model - Select from given models.
+- GPT: Change Model - Select from given models.
 
-GPT: Change Token Limit (Only Davinci) - Enter a new limit on the API. (Can't be default API key)
+- GPT: Show Chat History - Shows your chat history.
 
-GPT: Show Chat History - Shows your chat history.
+- GPT: Clear Chat History - Clears the chat history.
 
-GPT: Clear Chat History - Clears the chat history.
-
-GPT: Change Output Mode - Switchs the output mode, either opening in a new file, or replacing the question.
-
-## Known Issues
-
-Shared API key reaches its monthly limit somtimes, in which case, you can add your own API key.
-
-Let me know of any other issues.
+- GPT: Change Output Mode - Switchess the output mode, either opening in a new file, or replacing the question.
 
 ## Release Notes
+
+### 0.4.0
+Added GPT-4-Turbo
+
+### 0.3.6
+More friendlier error messages for special cases
+
+### 0.3.4
+API key stored in VSC global state and saved across sessions
 
 ### 0.3.0
 Removed Shared API Key due to personal limit having been reached.
@@ -86,6 +84,3 @@ Initial Release
 
 ### 0.1.2
 Implemented individual API key use and flexible token limit.
-
-
-##### Venmo: @SilasNevstad (if you'd like to help sponsor the shared API key with GPT-4 privelages) 🫶
