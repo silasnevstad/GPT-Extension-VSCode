@@ -55,17 +55,14 @@ To change the token limit (only avaible on davinci model):
 ### 0.4.0
 Added GPT-4-Turbo
 
-### 0.3.6
-More friendlier error messages for special cases
-
 ### 0.3.4
-API key stored in VSC global state and saved across sessions
+API keys saved across sessions
 
 ### 0.3.0
-Removed Shared API Key due to personal limit having been reached.
+Removed Shared API Key privileges.
 
 ### 0.2.2
-Now Compatible with VSCode 1.7^
+Compatible with VSCode 1.7^
 
 ### 0.2.0
 Chat History Added
@@ -74,13 +71,7 @@ Chat History Added
 GPT-4 Added
 
 ### 0.1.3
-Added Error handling for shared API key limit reached.
-
-### 0.1.2
-Implemented individual API key use and flexible token limit.
-
-### 0.1.0
-Initial Release
+Error handling for shared API key usage.
 
 ### 0.1.2
 Implemented individual API key use and flexible token limit.
