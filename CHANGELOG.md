@@ -1,6 +1,6 @@
 # Change Log
 
-All notable changes to the "gpthelper" extension will be documented in this file.
+All notable changes to the "GPT" extension will be documented in this file.
 
 ## 0.4.2
 - Removed Davinci model (deprecated)
