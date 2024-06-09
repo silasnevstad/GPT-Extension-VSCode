@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-const axios = require('axios').default;
 const { Configuration, OpenAIApi } = require("openai");
 require('dotenv').config()
 
@@ -49,7 +48,7 @@ function activate(context) {
 			location: vscode.ProgressLocation.Notification,
 			title: 'Loading response from GPT...',
 			cancellable: true,
-		}, async (progress, token) => {
+		}, async () => {
 			// use sendGPTRequest to send the request to the OpenAI API
 			const response = await sendGPTRequest(text);
 
@@ -150,7 +149,7 @@ function activate(context) {
 
 	const showChatHistory = vscode.commands.registerCommand('gpthelper.showChatHistory', async () => {
 		const chatHistoryText = chatHistory
-			.map((message, index) => `${message.role === 'user' ? 'User' : 'GPT'}: ${message.content}`)
+			.map((message) => `${message.role === 'user' ? 'User' : 'GPT'}: ${message.content}`)
 			.join('\n\n');
 
 		if (!chatHistoryText) {

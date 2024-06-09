@@ -2,6 +2,7 @@ node_modules
 .vscode-test/
 *.vsix
 
+.vscode
 dist
 icon.jpg
 vsc-extension-quickstart.md
@@ -13,5 +14,6 @@ demo3.mov
 .dependencygraph
 .env
 .eslintrc.json
+eslint.config.mjs
 .idea
 .vscodeignore
