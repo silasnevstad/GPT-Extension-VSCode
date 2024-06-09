@@ -1,8 +1,14 @@
 # GPT
 
-GPT inside of Visual Studio Code
+ChatGPT inside of Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
+
+## Models
+
+- GPT-4o
+- GPT-4-Turbo
+- GPT-3.5-Turbo
 
 ## Instructions
 * Highlight question or code
@@ -25,16 +31,11 @@ To select model:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
 
-To change the token limit (only avaible on davinci model):
+To change the token limit (only available on davinci model):
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
 
-## Models
 
-- GPT-4-Turbo
-- GPT-4
-- GPT-3.5-Turbo
-- Text-Davinci-003
 
 ## Features
 
@@ -43,14 +44,19 @@ To change the token limit (only avaible on davinci model):
 - GPT: Set API Key - Enter an API key to use.
 
 - GPT: Change Model - Select from given models.
+- 
+- GPT: Change Limit - Change the token limit.
 
 - GPT: Show Chat History - Shows your chat history.
 
 - GPT: Clear Chat History - Clears the chat history.
 
-- GPT: Change Output Mode - Switchess the output mode, either opening in a new file, or replacing the question.
+- GPT: Change Output Mode - Switches the output mode, either opening in a new file, or replacing the question.
 
 ## Release Notes
+
+### 0.4.2
+- Removed Davinci model (deprecated)
 
 ### 0.4.0
 Added GPT-4-Turbo

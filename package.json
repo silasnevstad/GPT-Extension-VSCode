@@ -3,9 +3,9 @@
   "displayName": "GPT",
   "description": "Use GPT inside VS Code",
   "icon": "icon.jpg",
-  "version": "0.2.0",
+  "version": "0.4.3",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.70.0"
   },
   "publisher": "SilasNevstad",
   "categories": [
@@ -17,7 +17,8 @@
     "onCommand:gpthelper.changeLimit",
     "onCommand:gpthelper.changeModel",
     "onCommand:gpthelper.showChatHistory",
-    "onCommand:gpthelper.clearChatHistory"
+    "onCommand:gpthelper.clearChatHistory",
+    "onCommand:gpthelper.changeOutputMode"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -45,6 +46,10 @@
       {
         "command": "gpthelper.clearChatHistory",
         "title": "GPT: Clear Chat History"
+      },
+      {
+        "command": "gpthelper.changeOutputMode",
+        "title": "GPT: Change Output Mode"
       }
     ]
   },
@@ -72,14 +77,20 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
-    "test": "node ./test/runTest.js"
+    "test": "node ./test/runTest.js",
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./extension.js --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "test-compile": "tsc -p ./"
   },
   "devDependencies": {
     "@types/glob": "^8.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
-    "@types/vscode": "^1.75.0",
+    "@types/vscode": "^1.70.0",
     "@vscode/test-electron": "^2.2.2",
+    "esbuild": "^0.20.2",
     "eslint": "^8.33.0",
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
