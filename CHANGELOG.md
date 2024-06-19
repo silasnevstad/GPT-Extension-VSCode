@@ -2,6 +2,9 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 0.4.6
+- Using axios instead of OpenAI library.
+
 ## 0.4.2
 - Removed Davinci model (deprecated)
 - Added GPT-4o
