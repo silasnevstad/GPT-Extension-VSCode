@@ -2,6 +2,9 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 0.4.7
+- Added debug mode with logging.
+
 ## 0.4.6
 - Using axios instead of OpenAI library.
 

@@ -53,7 +53,12 @@ To change the token limit (only available on davinci model):
 
 - GPT: Change Output Mode - Switches the output mode, either opening in a new file, or replacing the question.
 
+- GPT: Change Debug Mode - Switches the debug mode on or off.
+
 ## Release Notes
+
+## 0.4.7
+- Added debug mode with logging.
 
 ## 0.4.6
 - Using axios instead of OpenAI library.

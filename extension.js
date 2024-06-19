@@ -18,6 +18,9 @@ let max_tokens_options = {
 	"gpt-4-turbo": 128000,
 }
 
+let debugMode = false;
+let outputChannel = vscode.window.createOutputChannel("GPT Debug");
+
 // eslint-disable-next-line no-unused-vars
 let maxTokens = max_tokens_options[gpt_model];
 
@@ -65,6 +68,11 @@ function activate(context) {
 		});
 	});
 
+	const changeDebugMode = vscode.commands.registerCommand('gpthelper.changeDebugMode', async () => {
+		debugMode = !debugMode;
+		vscode.window.showInformationMessage('Debug mode changed to ' + (debugMode ? "On" : "Off") + '!');
+	});
+
 	const changeOutputMode = vscode.commands.registerCommand('gpthelper.changeOutputMode', async () => {
 		askOutputReplace = !askOutputReplace;
 		vscode.window.showInformationMessage('Output mode changed to ' + (askOutputReplace ? "Replace" : "New File") + '!');
@@ -80,6 +88,7 @@ function activate(context) {
 		}
 
 		gpt_model = possible_models[newModel.label];
+		maxTokens = max_tokens_options[gpt_model];
 		vscode.window.showInformationMessage('Model changed to ' + gpt_model + '!');
 	});
 
@@ -140,7 +149,7 @@ function activate(context) {
 		vscode.window.showInformationMessage('Chat history cleared.');
 	});
 
-	context.subscriptions.push(askGPT, changeOutputMode, setKey, changeLimit, changeModel, showChatHistory, clearChatHistory);
+	context.subscriptions.push(askGPT, changeDebugMode, changeOutputMode, setKey, changeLimit, changeModel, showChatHistory, clearChatHistory);
 }
 
 async function sendGPTRequest(text) {
@@ -158,6 +167,12 @@ async function sendGPTRequest(text) {
 		model: gpt_model,
 		messages: [{ role: "user", content: text }],
 	};
+
+	if (debugMode) {
+		outputChannel.appendLine('Request URL: ' + url);
+		outputChannel.appendLine('Request headers: ' + JSON.stringify(headers, null, 2));
+		outputChannel.appendLine('Request data: ' + JSON.stringify(data, null, 2));
+	}
 
 	try {
 		const response = await axios.post(url, data, { headers });
