@@ -3,20 +3,21 @@ const { Configuration, OpenAIApi } = require("openai");
 require('dotenv').config()
 
 let private_key = null;
-let max_tokens = 1000
+// eslint-disable-next-line no-unused-vars
+let maxTokens = 16000;
 let askOutputReplace = false
 
 let gpt_model = "gpt-4o";
 let possible_models = {
 	"GPT-4o (Default)": "gpt-4o",
-	"GPT-4-Turbo": "gpt-4-0125-preview",
+	"GPT-4-Turbo": "gpt-4-turbo",
 	"GPT-3.5-Turbo": 'gpt-3.5-turbo',
 }
 
 let max_tokens_options = {
-	"gpt-3.5-turbo": 4096,
-	"gpt-4o": 100000,
-	"gpt-4-0125-preview": 100000,
+	"gpt-3.5-turbo": 16385,
+	"gpt-4o": 128_000,
+	"gpt-4-turbo": 128_000,
 }
 
 let chatHistory = [];
@@ -37,7 +38,7 @@ function activate(context) {
 
 		// make sure api key is set
 		if (!private_key) {
-			vscode.window.showErrorMessage('You must set your own API key to change the request limit');
+			vscode.window.showErrorMessage('Please set your API key first. You can do this by running the "GPT: Set API Key" command.');
 			return;
 		}
 
@@ -106,7 +107,7 @@ function activate(context) {
 		}
 
 		private_key = apiKey;
-		max_tokens = 4097;
+		maxTokens = max_tokens_options[gpt_model];
 
 		// Store the API key in the global state
 		await context.globalState.update('openaiApiKey', apiKey);
@@ -141,7 +142,7 @@ function activate(context) {
 		}
 
 		// otherwise, set the new limit
-		max_tokens = newLimitInt;
+		maxTokens = newLimitInt;
 
 		// show information message with the new limit
 		vscode.window.showInformationMessage(`Request limit set to ${newLimitInt}`);
@@ -171,57 +172,47 @@ function activate(context) {
 }
 
 async function sendGPTRequest(text) {
-	// Check if the user has set their API key, and show info message if not
 	if (!private_key) {
 		vscode.window.showInformationMessage('Please set your API key first. You can do this by running the "GPT: Set API Key" command.');
 		return null;
 	}
 
-	// Initialize the OpenAI API
 	const configuration = new Configuration({ apiKey: private_key });
 	const openai = new OpenAIApi(configuration);
 
 	try {
-		let completion, explanation;
-		if (gpt_model === "text-davinci-003") {
-			completion = await openai.createCompletion({
-				model: "text-davinci-003",
-				prompt: `${text}`,
-				temperature: 0.5,
-				max_tokens: max_tokens,
-				top_p: 1,
-				frequency_penalty: 0.3,
-				presence_penalty: 0,
-			});
-			explanation = completion.data.choices[0].text;
-		} else {
-			completion = await openai.createChatCompletion({
-				model: gpt_model,
-				messages: [{ role: "user", content: `${text}` }],
-			});
-			explanation = completion.data.choices[0].message.content;
-		}
+		let completion = await openai.createChatCompletion({
+			model: gpt_model,
+			messages: [{ role: "user", content: `${text}` }],
+			// max_tokens: maxTokens,
+		});
+		let explanation = completion.data.choices[0].message.content;
 
-		if (!isSucessful(completion)) {
+		if (!isSuccessful(completion)) {
 			vscode.window.showErrorMessage(`Error getting response from GPT: Please check your API key`);
 			return null;
 		}
 
 		return explanation;
 	} catch (err) {
-		if (err && err.response && err.response.status === 429) {
-			vscode.window.showInformationMessage('You have reached your request limit. Please wait a while before making another request.');
-			return null;
+		if (err && err.response) {
+			const status = err.response.status;
+			if (status === 404) {
+				vscode.window.showErrorMessage(`Model or endpoint not found. Please check your model selection and API key.`);
+			} else if (status === 429) {
+				vscode.window.showInformationMessage('You have reached your request limit. Please wait a while before making another request.');
+			} else {
+				vscode.window.showErrorMessage(`Error explaining selection: ${err.message}`);
+			}
 		} else {
-			vscode.window.showErrorMessage(`Error explaining selection: ${err.message}`);
+			vscode.window.showErrorMessage(`Unexpected error: ${err.message}`);
 		}
 		return null;
 	}
 }
 
-
-function isSucessful(response) {
-	return response.status === 200; // 200 is the status code for a successful request
+function isSuccessful(response) {
+	return response && response.status === 200;
 }
 
 function deactivate() {}
@@ -229,4 +220,4 @@ function deactivate() {}
 module.exports = {
 	activate,
 	deactivate
-};
+}
