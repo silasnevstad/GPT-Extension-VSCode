@@ -57,6 +57,10 @@ To change the token limit (only available on davinci model):
 
 ## Release Notes
 
+## 0.4.8
+- Newer models added (o1-preview and o1-mini)
+- More detailed error and debug messages.
+
 ## 0.4.7
 - Added debug mode with logging.
 

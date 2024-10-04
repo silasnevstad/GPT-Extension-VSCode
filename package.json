@@ -3,7 +3,7 @@
   "displayName": "GPT",
   "description": "Use GPT inside VS Code",
   "icon": "icon.jpg",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "engines": {
     "vscode": "^1.70.0"
   },
