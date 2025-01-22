@@ -29,7 +29,7 @@ The model's response can either be opened in a new file or have it replace the h
 
 <div id="instructions"></div>
 
-## 📝 Instructions
+## 📝 Tools
 
 <div id="set-your-api-key"></div>
 
