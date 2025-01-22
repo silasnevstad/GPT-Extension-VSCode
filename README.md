@@ -12,16 +12,16 @@ ChatGPT inside of Visual Studio Code
 - GPT-4-Turbo
 - GPT-3.5-Turbo
 
-## Instructions
+## Get Started
 * Highlight question or code
 * Open Command Palette (```cmd + shift + p```)
 * Type 'Ask GPT'
 
 The model's response can either be opened in a new file or have it replace the highlighted question.
 
-## Set Up
-To set your own API key:
+## Instructions
 
+### To set your own API key:
 1. Go to OpenAI's website to create one.
 2. Once logged in, click on your account in the top right corner.
 3. Select "View API Keys" from the drop-down menu.
@@ -29,11 +29,11 @@ To set your own API key:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
-To change the model:
+### To change the model:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
 
-To change the token limit:
+### To change the token limit:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
 
@@ -46,7 +46,7 @@ To change the token limit:
 - GPT: Set API Key - Enter an API key to use.
 
 - GPT: Change Model - Select from given models.
-- 
+
 - GPT: Change Limit - Change the token limit.
 
 - GPT: Show Chat History - Shows your chat history.
@@ -59,7 +59,7 @@ To change the token limit:
 
 ## Release Notes
 
-### 1.0.0
+## 1.0.0
 - Newest models added (o1)
 - Improved chat history for better readability.
 - Keyboard shortcut added (alt + shift + i)
