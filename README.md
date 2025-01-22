@@ -31,6 +31,8 @@ The model's response can either be opened in a new file or have it replace the h
 
 ## Instructions
 
+<div id="set-your-api-key"></div>
+
 ### To set your own API key:
 1. Go to OpenAI's website to create one.
 2. Once logged in, click on your account in the top right corner.
