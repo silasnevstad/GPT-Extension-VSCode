@@ -56,21 +56,21 @@ The model's response can either be opened in a new file or have it replace the h
 
 ## ✨️ Features
 
-- AskGPT - Ask GPT any question you want.
+- **AskGPT** - Ask GPT any question you want.
 
-- GPT: Set API Key - Enter an API key to use.
+- **GPT: Set API Key** - Enter an API key to use.
 
-- GPT: Change Model - Select from given models.
+- **GPT: Change Model** - Select from given models.
 
-- GPT: Change Limit - Change the token limit.
+- **GPT: Change Limit** - Change the token limit.
 
-- GPT: Show Chat History - Shows your chat history.
+- **GPT: Show Chat History** - Shows your chat history.
 
-- GPT: Clear Chat History - Clears the chat history.
+- **GPT: Clear Chat History** - Clears the chat history.
 
-- GPT: Change Output Mode - Switches the output mode, either opening in a new file, or replacing the question.
+- **GPT: Change Output Mode** - Switches the output mode, either opening in a new file, or replacing the question.
 
-- GPT: Change Debug Mode - Switches the debug mode on or off.
+- **GPT: Change Debug Mode** - Switches the debug mode on or off.
 
 <div id="release-notes"></div>
 
