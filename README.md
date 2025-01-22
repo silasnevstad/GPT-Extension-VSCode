@@ -4,6 +4,8 @@ ChatGPT inside of Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
+<br></br>
+<div id="models"></div>
 ## Models
 - o1
 - o1-mini
@@ -12,13 +14,18 @@ ChatGPT inside of Visual Studio Code
 - GPT-4-Turbo
 - GPT-3.5-Turbo
 
-## Get Started
+<br></br>
+<div id="getting-started"></div>
+## Getting Started
+* [Set your API key](#set-your-api-key)
 * Highlight question or code
 * Open Command Palette (```cmd + shift + p```)
 * Type 'Ask GPT'
 
 The model's response can either be opened in a new file or have it replace the highlighted question.
 
+<br></br>
+<div id="instructions"></div>
 ## Instructions
 
 ### To set your own API key:
@@ -37,8 +44,8 @@ The model's response can either be opened in a new file or have it replace the h
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
 
-
-
+<br></br>
+<div id="features"></div>
 ## Features
 
 - AskGPT - Ask GPT any question you want.
@@ -57,6 +64,8 @@ The model's response can either be opened in a new file or have it replace the h
 
 - GPT: Change Debug Mode - Switches the debug mode on or off.
 
+<br></br>
+<div id="release-notes"></div>
 ## Release Notes
 
 ## 1.0.0
