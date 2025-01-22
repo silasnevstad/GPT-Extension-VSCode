@@ -34,11 +34,12 @@ The model's response can either be opened in a new file or have it replace the h
 <div id="set-your-api-key"></div>
 
 ### 🛠 To set your own API key:
+
 1. Get an API key
-  - Go to [OpenAI's website](https://platform.openai.com) to create one.
-  - Once logged in, click on the `Dashboard` tab from the top menu.
-  - Navigate to `API Keys` from the left-hand menu.
-  - Click the button "Create a new key."
+    - Go to [OpenAI's website](https://platform.openai.com) to create one.
+    - Once logged in, click on the `Dashboard` tab from the top menu.
+    - Navigate to `API Keys` from the left-hand menu.
+    - Click the button "Create a new key."
 
 2. Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
