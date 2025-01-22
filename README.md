@@ -1,6 +1,6 @@
 # GPT
 
-OpenAI's models brought inside of Visual Studio Code
+OpenAI's models inside of Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
