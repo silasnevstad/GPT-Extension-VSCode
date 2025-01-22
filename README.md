@@ -4,7 +4,6 @@ OpenAI's models inside of Visual Studio Code
 
 <div id="models"></div>
 
-## 🎨 Models
 - o1
 - o1-mini
 - GPT-4o
