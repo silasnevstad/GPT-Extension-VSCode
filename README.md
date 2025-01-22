@@ -19,10 +19,10 @@ OpenAI's models brought inside of Visual Studio Code
 <div id="getting-started"></div>
 
 ## 🚀 Getting Started
-* [Set your API key](#set-your-api-key)
-* Highlight question or code
-* Open Command Palette (```cmd + shift + p```)
-* Type 'Ask GPT'
+1. [Set your API key](#set-your-api-key)
+2. Highlight question or code
+3. Open Command Palette (```cmd + shift + p```)
+4. Type 'Ask GPT'
 
 The model's response can either be opened in a new file or have it replace the highlighted question.
 
@@ -41,13 +41,11 @@ The model's response can either be opened in a new file or have it replace the h
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
-<div style="display: flex; height: 10px;"></div>
+<div style="margin: 10px;"></div>
 
 ### 🛠 To change the model: 
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
-
-<div style="display: flex; height: 30px;"></div>
 
 ### 🛠 To change the token limit:
 
