@@ -1,13 +1,13 @@
 # GPT
 
-ChatGPT inside of Visual Studio Code
+OpenAI's models brought inside of Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
 <br></br>
 <div id="models"></div>
 
-## Models
+## 🎨 Models
 - o1
 - o1-mini
 - GPT-4o
@@ -41,9 +41,13 @@ The model's response can either be opened in a new file or have it replace the h
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
+<div style="display: flex; height: 10px;"></div>
+
 ### 🛠 To change the model: 
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
+
+<div style="display: flex; height: 30px;"></div>
 
 ### 🛠 To change the token limit:
 
