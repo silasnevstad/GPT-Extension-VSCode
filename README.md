@@ -4,7 +4,7 @@ OpenAI's models brought inside of Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
-
+<br>
 <div id="models"></div>
 
 ## 🎨 Models
@@ -15,7 +15,7 @@ OpenAI's models brought inside of Visual Studio Code
 - GPT-4-Turbo
 - GPT-3.5-Turbo
 
-
+<br>
 <div id="getting-started"></div>
 
 ## 🚀 Getting Started
@@ -26,7 +26,7 @@ OpenAI's models brought inside of Visual Studio Code
 
 The model's response can either be opened in a new file or have it replace the highlighted question.
 
-
+<br>
 <div id="instructions"></div>
 
 ## 📝 Tools
@@ -41,11 +41,13 @@ The model's response can either be opened in a new file or have it replace the h
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
+<br>
 
 ### 🛠 To change the model: 
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
 
+<br>
 
 ### 🛠 To change the token limit:
 
