@@ -7,19 +7,21 @@ let askOutputReplace = false;
 
 let gpt_model = "gpt-4o";
 let possible_models = {
-    'o1-preview': 'o1-preview',
+    'o1': 'o1',
     'o1-mini': 'o1-mini',
-    "GPT-4o (Default)": "gpt-4o",
+    "GPT-4o": "gpt-4o",
+    "GPT-4o-mini": "gpt-4o-mini",
     "GPT-4-Turbo": "gpt-4-turbo",
     "GPT-3.5-Turbo": 'gpt-3.5-turbo',
 }
 
 let max_tokens_options = {
-    "o1-preview": 128000,
+    "o1": 200000,
     "o1-mini": 128000,
-    "gpt-3.5-turbo": 16385,
     "gpt-4o": 128000,
+    "gpt-4o-mini": 128000,
     "gpt-4-turbo": 128000,
+    "gpt-3.5-turbo": 16385,
 }
 
 let debugMode = false;
@@ -38,7 +40,7 @@ function activate(context) {
     }
 
     // Register commands
-    const askGPT = vscode.commands.registerCommand('extension.askGPT', async () => {
+    const askGPT = vscode.commands.registerCommand('gpthelper.askGPT', async () => {
         const editor = vscode.window.activeTextEditor;
 
         if (!editor) {
@@ -74,8 +76,8 @@ function activate(context) {
             logDebug('Received response from GPT', { duration: `${duration}ms`, response });
 
             if (response) {
-                chatHistory.push({ role: 'user', content: `${text}` });
-                chatHistory.push({ role: 'assistant', content: response });
+                chatHistory.push({ role: 'user', content: `${text}`, model: gpt_model });
+                chatHistory.push({ role: 'assistant', content: response, model: gpt_model });
 
                 if (askOutputReplace) {
                     editor.edit(editBuilder => {
@@ -122,7 +124,10 @@ function activate(context) {
 
         gpt_model = possible_models[newModel.label];
         maxTokens = max_tokens_options[gpt_model];
-        vscode.window.showInformationMessage('Model changed to ' + gpt_model + '!');
+        const infoMsg = 'Model changed to ' + gpt_model + '! (' + 'Max tokens set to ' + maxTokens.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ')';
+        vscode.window.showInformationMessage(infoMsg);
+        // format tokens using , to split up longer numbers
+        vscode.window.showInformationMessage( + '!');
         logDebug('Model changed.', { gpt_model, maxTokens });
     });
 
@@ -168,9 +173,18 @@ function activate(context) {
     });
 
     const showChatHistory = vscode.commands.registerCommand('gpthelper.showChatHistory', async () => {
-        const chatHistoryText = chatHistory
-            .map((message) => `${message.role === 'user' ? 'User' : 'GPT'}: ${message.content}`)
-            .join('\n\n');
+        function chatHistorySingleMessage(message) {
+            let content;
+            if (message.role === 'user') {
+                content = `**User:** ${message.content}`;
+            } else {
+                const gptModelName = Object.keys(possible_models).find(key => possible_models[key] === message.model);
+                content = `**${gptModelName}:** ${message.content}`;
+            }
+            return `${'='.repeat(10)}\n` + content + `\n${'='.repeat(10)}\n`;
+        }
+
+        const chatHistoryText = chatHistory.map(message => chatHistorySingleMessage(message)).join('\n');
 
         if (!chatHistoryText) {
             vscode.window.showInformationMessage('No chat history available.');
@@ -197,7 +211,7 @@ function activate(context) {
         changeLimit,
         changeModel,
         showChatHistory,
-        clearChatHistory
+        clearChatHistory,
     );
 }
 

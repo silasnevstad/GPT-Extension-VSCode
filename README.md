@@ -5,8 +5,10 @@ ChatGPT inside of Visual Studio Code
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
 ## Models
-
+- o1
+- o1-mini
 - GPT-4o
+- GPT-4o-mini
 - GPT-4-Turbo
 - GPT-3.5-Turbo
 
@@ -15,7 +17,7 @@ ChatGPT inside of Visual Studio Code
 * Open Command Palette (```cmd + shift + p```)
 * Type 'Ask GPT'
 
-GPT's response can either be opened in a new file or have it replace the highlighted question.
+The model's response can either be opened in a new file or have it replace the highlighted question.
 
 ## Set Up
 To set your own API key:
@@ -27,11 +29,11 @@ To set your own API key:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
-To select model:
+To change the model:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
 
-To change the token limit (only available on davinci model):
+To change the token limit:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
 
@@ -57,14 +59,19 @@ To change the token limit (only available on davinci model):
 
 ## Release Notes
 
-## 0.4.8
+### 1.0.0
+- Newest models added (o1)
+- Improved chat history for better readability.
+- Keyboard shortcut added (alt + shift + i)
+
+### 0.4.8
 - Newer models added (o1-preview and o1-mini)
 - More detailed error and debug messages.
 
-## 0.4.7
+### 0.4.7
 - Added debug mode with logging.
 
-## 0.4.6
+### 0.4.6
 - Using axios instead of OpenAI library.
 
 ### 0.4.2

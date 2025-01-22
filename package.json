@@ -1,18 +1,19 @@
 {
   "name": "gpthelper",
   "displayName": "GPT",
-  "description": "Use GPT inside VS Code",
+  "description": "Use OpenAI's models inside VS Code",
   "icon": "icon.jpg",
-  "version": "0.4.8",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.70.0"
   },
   "publisher": "SilasNevstad",
   "categories": [
-    "Other"
+    "AI",
+    "Productivity"
   ],
   "activationEvents": [
-    "onCommand:extension.askGPT",
+    "onCommand:gpthelper.askGPT",
     "onCommand:gpthelper.setKey",
     "onCommand:gpthelper.changeLimit",
     "onCommand:gpthelper.changeModel",
@@ -25,7 +26,7 @@
   "contributes": {
     "commands": [
       {
-        "command": "extension.askGPT",
+        "command": "gpthelper.askGPT",
         "title": "Ask GPT"
       },
       {
@@ -56,6 +57,13 @@
         "command": "gpthelper.changeDebugMode",
         "title": "GPT: Change Debug Mode"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "gpthelper.askGPT",
+        "key": "alt+shift+i",
+        "mac": "alt+shift+i"
+      }
     ]
   },
   "menus": {
@@ -72,13 +80,6 @@
       }
     ]
   },
-  "keybindings": [
-    {
-      "command": "extension.askGPT",
-      "key": "alt+shift+i",
-      "mac": "alt+shift+i"
-    }
-  ],
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
