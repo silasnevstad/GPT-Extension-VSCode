@@ -84,7 +84,7 @@ The model's response can either be opened in a new file or have it replace the h
 ### 1.0.0
 - Newest models (o1)
 - Improved chat history for better readability.
-- Keyboard shortcut added (alt + shift + i)
+- Keyboard shortcut added (`alt` + `shift` + `i`)
 
 #### 0.4.8
 - Newer models (o1-preview and o1-mini)
@@ -92,8 +92,6 @@ The model's response can either be opened in a new file or have it replace the h
 
 #### 0.4.7
 - Added debug mode with logging.
-
-#### 0.4.6
 - Using axios instead of OpenAI library.
 
 #### 0.4.2
@@ -111,15 +109,8 @@ The model's response can either be opened in a new file or have it replace the h
 
 #### 0.2.2
 - Compatible with VSCode 1.7^
-
-#### 0.2.0
 - Chat History Added
-
-#### 0.1.5
 - GPT-4 Added
 
 #### 0.1.3
 - Error handling for shared API key usage.
-
-#### 0.1.2
-- Implemented individual API key use and flexible token limit.
