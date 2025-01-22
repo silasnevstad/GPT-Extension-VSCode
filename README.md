@@ -2,7 +2,6 @@
 
 OpenAI's models inside of Visual Studio Code
 
-<br>
 <div id="models"></div>
 
 ## 🎨 Models
@@ -12,6 +11,8 @@ OpenAI's models inside of Visual Studio Code
 - GPT-4o-mini
 - GPT-4-Turbo
 - GPT-3.5-Turbo
+
+<br>
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
