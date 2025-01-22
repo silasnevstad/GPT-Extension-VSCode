@@ -18,7 +18,7 @@ ChatGPT inside of Visual Studio Code
 <br></br>
 <div id="getting-started"></div>
 
-## 🚀Getting Started
+## 🚀 Getting Started
 * [Set your API key](#set-your-api-key)
 * Highlight question or code
 * Open Command Palette (```cmd + shift + p```)
@@ -29,11 +29,11 @@ The model's response can either be opened in a new file or have it replace the h
 <br></br>
 <div id="instructions"></div>
 
-## 📝Instructions
+## 📝 Instructions
 
 <div id="set-your-api-key"></div>
 
-### 🛠To set your own API key:
+### 🛠 To set your own API key:
 1. Go to [OpenAI's website](https://platform.openai.com) to create one.
 2. Once logged in, click on your account in the top right corner.
 3. Select "View API Keys" from the drop-down menu.
@@ -41,18 +41,18 @@ The model's response can either be opened in a new file or have it replace the h
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
-### 🛠To change the model: 
+### 🛠 To change the model: 
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Model"
 
-### 🛠To change the token limit:
+### 🛠 To change the token limit:
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Change Token Limit"
 
 <br></br>
 <div id="features"></div>
 
-## ✨️Features
+## ✨️ Features
 
 - AskGPT - Ask GPT any question you want.
 
@@ -73,7 +73,7 @@ The model's response can either be opened in a new file or have it replace the h
 <br></br>
 <div id="release-notes"></div>
 
-## Release Notes
+## 📒 Release Notes
 
 ## 1.0.0
 - Newest models added (o1)
