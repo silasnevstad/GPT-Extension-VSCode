@@ -41,7 +41,7 @@ The model's response can either be opened in a new file or have it replace the h
 
 - Press ```cmd + shift + p``` (Command Palette) and search for "Set API Key"
 
-<div style="margin: 10px;"></div>
+<div style="margin: 50px;"></div>
 
 ### 🛠 To change the model: 
 
