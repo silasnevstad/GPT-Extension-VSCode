@@ -6,6 +6,7 @@ ChatGPT inside of Visual Studio Code
 
 <br></br>
 <div id="models"></div>
+
 ## Models
 - o1
 - o1-mini
