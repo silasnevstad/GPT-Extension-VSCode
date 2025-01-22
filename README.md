@@ -76,16 +76,16 @@ The model's response can either be opened in a new file or have it replace the h
 
 ## 📒 Release Notes
 
-## 1.0.0
+### 1.0.0
 - Newest models added (o1)
 - Improved chat history for better readability.
 - Keyboard shortcut added (alt + shift + i)
 
-### 0.4.8
+#### 0.4.8
 - Newer models added (o1-preview and o1-mini)
 - More detailed error and debug messages.
 
-### 0.4.7
+#### 0.4.7
 - Added debug mode with logging.
 
 ### 0.4.6
