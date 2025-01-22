@@ -16,6 +16,7 @@ ChatGPT inside of Visual Studio Code
 
 <br></br>
 <div id="getting-started"></div>
+
 ## Getting Started
 * [Set your API key](#set-your-api-key)
 * Highlight question or code
@@ -26,6 +27,7 @@ The model's response can either be opened in a new file or have it replace the h
 
 <br></br>
 <div id="instructions"></div>
+
 ## Instructions
 
 ### To set your own API key:
@@ -46,6 +48,7 @@ The model's response can either be opened in a new file or have it replace the h
 
 <br></br>
 <div id="features"></div>
+
 ## Features
 
 - AskGPT - Ask GPT any question you want.
@@ -66,6 +69,7 @@ The model's response can either be opened in a new file or have it replace the h
 
 <br></br>
 <div id="release-notes"></div>
+
 ## Release Notes
 
 ## 1.0.0
