@@ -9,8 +9,7 @@
   },
   "publisher": "SilasNevstad",
   "categories": [
-    "AI",
-    "Productivity"
+    "Other"
   ],
   "activationEvents": [
     "onCommand:gpthelper.askGPT",
