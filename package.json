@@ -13,6 +13,9 @@
   ],
   "activationEvents": [
     "onCommand:gpthelper.askGPT",
+    "onCommand:gpthelper.askGPTFile",
+    "onCommand:gpthelper.insertResponseAsComment",
+    "onCommand:gpthelper.exportChatHistory",
     "onCommand:gpthelper.setKey",
     "onCommand:gpthelper.changeLimit",
     "onCommand:gpthelper.changeModel",
@@ -27,6 +30,18 @@
       {
         "command": "gpthelper.askGPT",
         "title": "Ask GPT"
+      },
+      {
+        "command": "gpthelper.askGPTFile",
+        "title": "Ask GPT with File"
+      },
+      {
+        "command": "gpthelper.insertResponseAsComment",
+        "title": "GPT: Insert Response as Comment"
+      },
+      {
+        "command": "gpthelper.exportChatHistory",
+        "title": "GPT: Export Chat History"
       },
       {
         "command": "gpthelper.setKey",
