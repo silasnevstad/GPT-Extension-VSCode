@@ -5,41 +5,53 @@ const path = require('path');
 require('dotenv').config();
 
 // --- Global State Variables ---
-let private_key = null;
-let askOutputReplace = false;  // if true, replace selected text; if false, open in new document
+let privateKey = null;          // OpenAI API Key
+let outputReplace = false;      // If true, replace selection; if false, open a new doc
+let gptModel = "gpt-4o";        // Default model
+let debugMode = false;
 
-let gpt_model = "gpt-4o";
-const possible_models = {
-    'o3-mini': 'o3-mini',
-    'o1': 'o1',
-    'o1-mini': 'o1-mini',
-    "GPT-4o": "gpt-4o",
-    "GPT-4o-mini": "gpt-4o-mini",
-    "GPT-4-Turbo": "gpt-4-turbo",
-    "GPT-3.5-Turbo": 'gpt-3.5-turbo',
-};
-
-const max_tokens_options = {
-    'o3-mini': 100000,
+// Max tokens per model (adjust as needed)
+const modelMaxTokens = {
+    "o3-mini": 100000,
     "o1": 100000,
     "o1-mini": 65536,
     "gpt-4o": 16384,
     "gpt-4o-mini": 16384,
     "gpt-4-turbo": 4096,
-    "gpt-3.5-turbo": 4096,
+    "gpt-3.5-turbo": 4096
 };
 
-let debugMode = false;
-let outputChannel = vscode.window.createOutputChannel("GPT Debug");
+// Map display name to actual model ID
+const modelMap = {
+    'o3-mini': 'o3-mini',
+    "o1": "o1",
+    "o1-mini": "o1-mini",
+    "GPT-4o": "gpt-4o",
+    "GPT-4o-mini": "gpt-4o-mini",
+    "GPT-4-Turbo": "gpt-4-turbo",
+    "GPT-3.5-Turbo": "gpt-3.5-turbo"
+};
 
-let maxOutputTokens = max_tokens_options[gpt_model];  // maximum output tokens (i.e. max_completion_tokens)
-let temperature = null;  // if not set, API uses default
-let topP = 1;          // default top_p value
+let maxTokens = modelMaxTokens[gptModel];
+let temperature = null;     // If not set, API uses default
+let topP = 1;            // Default top_p
 
-// Chat history as an array of messages {role, content, model, timestamp}
+// A simple debug logger
+const outputChannel = vscode.window.createOutputChannel("GPT Debug");
+
+function logDebug(message, details = {}) {
+    if (!debugMode) return;
+    const timestamp = new Date().toISOString();
+    outputChannel.show(true);
+    outputChannel.appendLine(`[${timestamp}] ${message}`);
+    if (Object.keys(details).length) {
+        outputChannel.appendLine(JSON.stringify(details, null, 2));
+    }
+    outputChannel.appendLine('---');
+}
+
+// In-memory chat history (multi-turn)
 let chatHistory = [];
-
-// --- Utility Functions ---
 
 // Format chat history as Markdown
 function formatChatHistory() {
@@ -47,13 +59,19 @@ function formatChatHistory() {
         .map(msg => {
             const timeStr = new Date(msg.timestamp).toLocaleTimeString();
             const role = msg.role === 'user' ? 'User' : 'Assistant';
-            const modelLabel = msg.model;
-            return `${'='.repeat(10)}\n**${role} (${modelLabel}) [${timeStr}]:**\n${msg.content}\n${'='.repeat(10)}\n`;
+            return `${'='.repeat(10)}\n**${role} (${msg.model}) [${timeStr}]:**\n${msg.content}\n${'='.repeat(10)}\n`;
         })
         .join('\n');
 }
 
-// Get comment prefix based on language ID (extend this mapping as needed)
+// Build messages for the API from existing chatHistory + the new user query
+function buildMessages(userPrompt) {
+    const messages = chatHistory.map(msg => ({ role: msg.role, content: msg.content }));
+    messages.push({ role: 'user', content: userPrompt });
+    return messages;
+}
+
+// Return comment prefix based on language ID
 function getCommentPrefix(languageId) {
     const map = {
         javascript: '// ',
@@ -64,117 +82,53 @@ function getCommentPrefix(languageId) {
         cpp: '// ',
         csharp: '// ',
         ruby: '# ',
-        go: "// ",
-        php: "// ",
+        go: '// ',
+        php: '// '
     };
     return map[languageId] || '// ';
 }
 
-// --- Main Commands & Functions ---
-
-// Ask GPT based on current selection
-async function askGPTHandler(useWholeFile = false) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        vscode.window.showWarningMessage('No active editor found.');
-        return;
-    }
-    if (!private_key) {
-        vscode.window.showErrorMessage('Please set your API key first. Run "GPT: Set API Key" command.');
-        return;
-    }
-    // If useWholeFile flag is true, send the entire document; otherwise, use the current selection.
-    const text = useWholeFile ? editor.document.getText() : editor.document.getText(editor.selection);
-    if (!text.trim()) {
-        vscode.window.showWarningMessage('No text found to send to GPT.');
-        return;
-    }
-
-    vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: 'Loading response from GPT...',
-        cancellable: true,
-    }, async (progress, token) => {
-        const startTime = Date.now();
-        logDebug('Sending GPT request...', { textSnippet: text.slice(0, 50) + '...' });
-        const response = await sendGPTRequest(text);
-        const duration = Date.now() - startTime;
-        logDebug('Received GPT response', { duration: `${duration}ms`, responseSnippet: response?.slice(0, 50) + '...' });
-
-        if (response) {
-            // Save to chat history with timestamp
-            chatHistory.push({ role: 'user', content: text, model: gpt_model, timestamp: Date.now() });
-            chatHistory.push({ role: 'assistant', content: response, model: gpt_model, timestamp: Date.now() });
-
-            if (askOutputReplace && !useWholeFile) {
-                // Replace current selection
-                editor.edit(editBuilder => {
-                    editBuilder.replace(editor.selection, response);
-                }).then(success => {
-                    if (success) {
-                        logDebug('Replaced selected text with GPT response.');
-                    } else {
-                        logDebug('Failed to replace selected text.');
-                    }
-                });
-            } else {
-                // Open response in a new document
-                const doc = await vscode.workspace.openTextDocument({ content: response });
-                vscode.window.showTextDocument(doc).then(() => {
-                    logDebug('Opened GPT response in new document.');
-                });
-            }
-        } else {
-            logDebug('No response received from GPT.');
-        }
-    });
-}
-
-// Send GPT request to OpenAI API
-async function sendGPTRequest(text) {
-    if (!private_key) {
-        vscode.window.showInformationMessage('Set your API key first (GPT: Set API Key).');
-        logDebug('sendGPTRequest called without API key.');
+// Send GPT request
+async function sendGPTRequest(userPrompt) {
+    if (!privateKey) {
+        vscode.window.showErrorMessage('Please set your API key first (GPT: Set API Key).');
+        logDebug('No API key set');
         return null;
     }
-
     const url = 'https://api.openai.com/v1/chat/completions';
     const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${private_key}`,
+        'Authorization': `Bearer ${privateKey}`
     };
-
-    // Build request payload
     const data = {
-        model: gpt_model,
-        messages: [{ role: "user", content: text }],
-        max_completion_tokens: maxOutputTokens,
+        model: gptModel,
+        messages: buildMessages(userPrompt),
+        max_completion_tokens: maxTokens,
         temperature: temperature !== null ? temperature : undefined,
-        top_p: topP,
+        top_p: topP
     };
 
-    logDebug('Preparing GPT request', { url, data });
+    logDebug('Sending GPT request', { gptModel, maxTokens, temperature, topP });
     try {
         const response = await axios.post(url, data, { headers });
-        logDebug('Received response from GPT API', { status: response.status, data: response.data });
         if (response.status !== 200) {
-            vscode.window.showErrorMessage(`Error: Received status ${response.status}.`);
+            vscode.window.showErrorMessage(`Error: Received status ${response.status}`);
             return null;
         }
         return response.data.choices[0].message.content;
     } catch (err) {
-        logDebug('Error during GPT request', { error: err.toString(), stack: err.stack });
         if (err.response) {
-            const status = err.response.status;
-            const errorData = err.response.data;
+            const { status, data: errorData } = err.response;
             if (status === 404) {
-                vscode.window.showErrorMessage('Model or endpoint not found. Check your model selection and API key.');
+                vscode.window.showErrorMessage('Model or endpoint not found. Check your model and API key.');
             } else if (status === 429) {
-                vscode.window.showInformationMessage('Request limit reached. Please wait before trying again.');
+                vscode.window.showWarningMessage('Request limit reached. Please wait before trying again.');
+            } else if (status === 401 || status === 403) {
+                vscode.window.showErrorMessage('Invalid or unauthorized API key. Please check your key.');
             } else {
                 vscode.window.showErrorMessage(`Error: ${err.message}`);
             }
-            logDebug('GPT API error response', { status, errorData });
+            logDebug('GPT API error', { status, errorData });
         } else if (err.request) {
             vscode.window.showErrorMessage('No response received from GPT API.');
             logDebug('No response from GPT API', { error: err.message });
@@ -186,196 +140,242 @@ async function sendGPTRequest(text) {
     }
 }
 
-// Insert GPT response as a comment above the current line
-async function insertResponseAsComment() {
+// Ask GPT with either the selection or the entire file
+async function askGPTHandler(useWholeFile = false) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showWarningMessage('No active editor found.');
         return;
     }
-    if (!private_key) {
-        vscode.window.showErrorMessage('Set your API key first (GPT: Set API Key).');
+    const queryText = useWholeFile
+        ? editor.document.getText()
+        : editor.document.getText(editor.selection);
+
+    if (!queryText.trim()) {
+        vscode.window.showWarningMessage('No text selected or file is empty.');
         return;
     }
-    const prompt = await vscode.window.showInputBox({ prompt: "Enter prompt for GPT (response will be inserted as comment)" });
-    if (!prompt) {
-        return;
-    }
+
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: 'Getting GPT response...',
-        cancellable: true,
-    }, async (progress, token) => {
+        title: 'Asking GPT...',
+        cancellable: true
+    }, async () => {
+        const startTime = Date.now();
+        const response = await sendGPTRequest(queryText);
+        const duration = Date.now() - startTime;
+        logDebug('GPT response time', { durationMs: duration });
+
+        if (response) {
+            // Update chat history
+            chatHistory.push({ role: 'user', content: queryText, model: gptModel, timestamp: Date.now() });
+            chatHistory.push({ role: 'assistant', content: response, model: gptModel, timestamp: Date.now() });
+
+            if (outputReplace && !useWholeFile) {
+                // Replace selected text
+                editor.edit(editBuilder => {
+                    editBuilder.replace(editor.selection, response);
+                });
+            } else {
+                // Open response in a new document
+                const doc = await vscode.workspace.openTextDocument({ content: response });
+                vscode.window.showTextDocument(doc);
+            }
+        }
+    });
+}
+
+// Insert GPT response as a comment at the current cursor
+async function insertResponseAsComment() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return vscode.window.showWarningMessage('No active editor found.');
+
+    if (!privateKey) {
+        vscode.window.showErrorMessage('Please set your API key first (GPT: Set API Key).');
+        return;
+    }
+    const prompt = await vscode.window.showInputBox({ prompt: "Enter prompt for GPT (as comment)" });
+    if (!prompt) return;
+
+    vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Fetching GPT comment...',
+        cancellable: true
+    }, async () => {
         const response = await sendGPTRequest(prompt);
         if (response) {
-            const languageId = editor.document.languageId;
-            const commentPrefix = getCommentPrefix(languageId);
-            const commentedResponse = response.split('\n').map(line => commentPrefix + line).join('\n');
-            const position = editor.selection.active;
+            // Update chat history
+            chatHistory.push({ role: 'user', content: prompt, model: gptModel, timestamp: Date.now() });
+            chatHistory.push({ role: 'assistant', content: response, model: gptModel, timestamp: Date.now() });
+
+            const commentPrefix = getCommentPrefix(editor.document.languageId);
+            const commented = response
+                .split('\n')
+                .map(line => commentPrefix + line)
+                .join('\n');
+
             editor.edit(editBuilder => {
-                editBuilder.insert(position, commentedResponse + "\n");
-            }).then(success => {
-                if (success) {
-                    logDebug('Inserted GPT response as comment.');
-                } else {
-                    logDebug('Failed to insert GPT response.');
-                }
+                editBuilder.insert(editor.selection.active, commented + "\n");
             });
         }
     });
 }
 
-// Export chat history as a markdown file
+// Export chat history as a Markdown file
 async function exportChatHistory() {
-    if (chatHistory.length === 0) {
+    if (!chatHistory.length) {
         vscode.window.showInformationMessage('No chat history to export.');
         return;
     }
     const defaultUri = vscode.workspace.workspaceFolders
         ? vscode.Uri.file(vscode.workspace.workspaceFolders[0].uri.fsPath)
         : undefined;
+
     const uri = await vscode.window.showSaveDialog({
         defaultUri,
         filters: { 'Markdown': ['md'] },
-        saveLabel: 'Export Chat History',
+        saveLabel: 'Export Chat History'
     });
-    if (!uri) {
-        return;
-    }
+    if (!uri) return;
+
     const mdContent = formatChatHistory();
     fs.writeFile(uri.fsPath, mdContent, err => {
         if (err) {
-            vscode.window.showErrorMessage(`Error exporting chat history: ${err.message}`);
+            vscode.window.showErrorMessage(`Error exporting: ${err.message}`);
         } else {
             vscode.window.showInformationMessage('Chat history exported successfully!');
         }
     });
 }
 
-// Log debug messages if debugMode is enabled
-function logDebug(message, details = {}) {
-    if (debugMode) {
-        const timestamp = new Date().toISOString();
-        outputChannel.show(true);
-        outputChannel.appendLine(`[${timestamp}] ${message}`);
-        if (Object.keys(details).length > 0) {
-            outputChannel.appendLine(JSON.stringify(details, null, 2));
-        }
-        outputChannel.appendLine('---');
-    }
-}
-
 // --- Activation & Deactivation ---
-
 function activate(context) {
-    // Load API key if already set
+    // Load existing API key
     const apiKey = context.globalState.get('openaiApiKey');
-    if (apiKey) {
-        private_key = apiKey;
-    }
+    if (apiKey) privateKey = apiKey;
 
-    // Register commands
     const commands = [
+
+        // Ask GPT (selection)
         vscode.commands.registerCommand('gpthelper.askGPT', () => askGPTHandler(false)),
+
+        // Ask GPT (entire file)
         vscode.commands.registerCommand('gpthelper.askGPTFile', () => askGPTHandler(true)),
+
+        // Insert GPT comment
         vscode.commands.registerCommand('gpthelper.insertResponseAsComment', insertResponseAsComment),
+
+        // Export chat
         vscode.commands.registerCommand('gpthelper.exportChatHistory', exportChatHistory),
+
+        // Debug mode toggle
         vscode.commands.registerCommand('gpthelper.changeDebugMode', () => {
             debugMode = !debugMode;
-            vscode.window.showInformationMessage(`Debug mode ${debugMode ? "On" : "Off"}.`);
+            vscode.window.showInformationMessage(`Debug mode is now ${debugMode ? "On" : "Off"}.`);
             logDebug('Debug mode toggled', { debugMode });
         }),
+
+        // Output mode toggle
         vscode.commands.registerCommand('gpthelper.changeOutputMode', () => {
-            askOutputReplace = !askOutputReplace;
-            vscode.window.showInformationMessage(`Output mode changed to ${askOutputReplace ? "Replace" : "New File"}.`);
-            logDebug('Output mode toggled', { askOutputReplace });
+            outputReplace = !outputReplace;
+            vscode.window.showInformationMessage(`Output mode: ${outputReplace ? "Replace Selection" : "New File"}.`);
+            logDebug('Output mode toggled', { outputReplace });
         }),
+
+        // Change model
         vscode.commands.registerCommand('gpthelper.changeModel', async () => {
-            const newModel = await vscode.window.showQuickPick(
-                Object.keys(possible_models).map(label => ({ label })),
+            const pick = await vscode.window.showQuickPick(
+                Object.keys(modelMap).map(label => ({ label })),
                 { placeHolder: "Select a model" }
             );
-            if (!newModel) {
-                return;
-            }
-            gpt_model = possible_models[newModel.label];
-            maxOutputTokens = max_tokens_options[gpt_model];
-            vscode.window.showInformationMessage(`Model changed to ${gpt_model} (Max tokens: ${maxOutputTokens.toLocaleString()}).`);
-            logDebug('Model changed', { gpt_model, maxTokens: maxOutputTokens });
+            if (!pick) return;
+            gptModel = modelMap[pick.label];
+            maxTokens = modelMaxTokens[gptModel];
+            vscode.window.showInformationMessage(`Model changed to ${gptModel} (max tokens: ${maxTokens}).`);
+            logDebug('Model changed', { gptModel, maxTokens });
         }),
+
+        // Change temperature
         vscode.commands.registerCommand('gpthelper.changeTemperature', async () => {
-            const newTemperature = await vscode.window.showInputBox({
-                prompt: "Enter temperature value (0.0 - 1.0)",
+            const newTemp = await vscode.window.showInputBox({
+                prompt: "Enter temperature (0.0 - 1.0)"
             });
-            const newTempFloat = parseFloat(newTemperature);
-            if (isNaN(newTempFloat) || newTempFloat < 0 || newTempFloat > 1) {
+            if (!newTemp) return;
+            const val = parseFloat(newTemp);
+            if (isNaN(val) || val < 0 || val > 1) {
                 vscode.window.showErrorMessage('Temperature must be between 0.0 and 1.0.');
-                logDebug('Invalid temperature input', { newTemperature });
                 return;
             }
-            temperature = newTempFloat;
-            vscode.window.showInformationMessage(`Temperature set to ${newTempFloat}.`);
+            temperature = val;
+            vscode.window.showInformationMessage(`Temperature set to ${val}.`);
             logDebug('Temperature changed', { temperature });
         }),
+
+        // Change top_p
         vscode.commands.registerCommand('gpthelper.changeTopP', async () => {
-            const newTopP = await vscode.window.showInputBox({
-                prompt: "Enter top_p value (0.0 - 1.0)",
+            const newVal = await vscode.window.showInputBox({
+                prompt: "Enter top_p (0.0 - 1.0)"
             });
-            const newTopPFloat = parseFloat(newTopP);
-            if (isNaN(newTopPFloat) || newTopPFloat < 0 || newTopPFloat > 1) {
+            if (!newVal) return;
+            const val = parseFloat(newVal);
+            if (isNaN(val) || val < 0 || val > 1) {
                 vscode.window.showErrorMessage('top_p must be between 0.0 and 1.0.');
-                logDebug('Invalid top_p input', { newTopP });
                 return;
             }
-            topP = newTopPFloat;
-            vscode.window.showInformationMessage(`top_p set to ${newTopPFloat}.`);
+            topP = val;
+            vscode.window.showInformationMessage(`top_p set to ${val}.`);
             logDebug('top_p changed', { topP });
         }),
+
+        // Set API key
         vscode.commands.registerCommand('gpthelper.setKey', async () => {
-            const apiKey = await vscode.window.showInputBox({
+            const newKey = await vscode.window.showInputBox({
                 prompt: "Enter your OpenAI API key",
-                password: true,
+                password: true
             });
-            if (!apiKey) {
-                return;
-            }
-            private_key = apiKey;
-            maxOutputTokens = max_tokens_options[gpt_model];
-            await context.globalState.update('openaiApiKey', apiKey);
+            if (!newKey) return;
+            privateKey = newKey;
+            await context.globalState.update('openaiApiKey', newKey);
             vscode.window.showInformationMessage('API key set successfully!');
-            logDebug('API key set', { apiKey });
+            logDebug('API key set');
         }),
+
+        // Change request token limit
         vscode.commands.registerCommand('gpthelper.changeLimit', async () => {
-            if (!private_key) {
-                vscode.window.showErrorMessage('Set your API key before changing the request limit.');
+            if (!privateKey) {
+                vscode.window.showErrorMessage('Set your API key before changing the token limit.');
                 return;
             }
-            const model_limit = max_tokens_options[gpt_model];
-            const newLimit = await vscode.window.showInputBox({
-                prompt: `Enter new request limit (0 - ${model_limit})`,
+            const limitPrompt = await vscode.window.showInputBox({
+                prompt: `Enter new token limit (0 - ${modelMaxTokens[gptModel]})`
             });
-            const newLimitInt = parseInt(newLimit, 10);
-            if (isNaN(newLimitInt) || newLimitInt < 0 || newLimitInt > model_limit) {
-                vscode.window.showErrorMessage(`Request limit must be between 0 and ${model_limit}.`);
-                logDebug('Invalid request limit input', { newLimit });
+            if (!limitPrompt) return;
+            const val = parseInt(limitPrompt, 10);
+            if (isNaN(val) || val < 0 || val > modelMaxTokens[gptModel]) {
+                vscode.window.showErrorMessage(`Token limit must be between 0 and ${modelMaxTokens[gptModel]}.`);
                 return;
             }
-            maxOutputTokens = newLimitInt;
-            vscode.window.showInformationMessage(`Request limit set to ${newLimitInt}.`);
-            logDebug('Request limit changed', { maxTokens: maxOutputTokens });
+            maxTokens = val;
+            vscode.window.showInformationMessage(`Token limit set to ${val}.`);
+            logDebug('Token limit changed', { maxTokens });
         }),
+
+        // Show chat history
         vscode.commands.registerCommand('gpthelper.showChatHistory', async () => {
-            const historyMd = formatChatHistory();
-            if (!historyMd.trim()) {
+            if (!chatHistory.length) {
                 vscode.window.showInformationMessage('No chat history available.');
-                logDebug('No chat history found');
                 return;
             }
-            const doc = await vscode.workspace.openTextDocument({ content: historyMd, language: 'markdown' });
+            const doc = await vscode.workspace.openTextDocument({
+                content: formatChatHistory(),
+                language: 'markdown'
+            });
             vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-            logDebug('Displayed chat history', { chatHistoryLength: chatHistory.length });
+            logDebug('Displayed chat history', { length: chatHistory.length });
         }),
-        vscode.commands.registerCommand('gpthelper.clearChatHistory', async () => {
+
+        // Clear chat history
+        vscode.commands.registerCommand('gpthelper.clearChatHistory', () => {
             chatHistory = [];
             vscode.window.showInformationMessage('Chat history cleared.');
             logDebug('Chat history cleared');
@@ -387,7 +387,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = {
-    activate,
-    deactivate
-};
+module.exports = { activate, deactivate };
