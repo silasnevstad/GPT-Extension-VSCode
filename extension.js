@@ -6,29 +6,32 @@ let private_key = null;
 let askOutputReplace = false;
 
 let gpt_model = "gpt-4o";
-let possible_models = {
+const possible_models = {
+    'o3-mini': 'o3-mini',
     'o1': 'o1',
     'o1-mini': 'o1-mini',
     "GPT-4o": "gpt-4o",
     "GPT-4o-mini": "gpt-4o-mini",
     "GPT-4-Turbo": "gpt-4-turbo",
     "GPT-3.5-Turbo": 'gpt-3.5-turbo',
-}
+};
 
-let max_tokens_options = {
-    "o1": 200000,
-    "o1-mini": 128000,
-    "gpt-4o": 128000,
-    "gpt-4o-mini": 128000,
-    "gpt-4-turbo": 128000,
-    "gpt-3.5-turbo": 16385,
-}
+const max_tokens_options = {
+    'o3-mini': 100000,
+    "o1": 100000,
+    "o1-mini": 65536,
+    "gpt-4o": 16384,
+    "gpt-4o-mini": 16384,
+    "gpt-4-turbo": 4096,
+    "gpt-3.5-turbo": 4096,
+};
 
 let debugMode = false;
 let outputChannel = vscode.window.createOutputChannel("GPT Debug");
 
-// eslint-disable-next-line no-unused-vars
 let maxTokens = max_tokens_options[gpt_model];
+let temperature = null;
+let topP = 1; // default top_p value
 
 let chatHistory = [];
 
@@ -42,7 +45,6 @@ function activate(context) {
     // Register commands
     const askGPT = vscode.commands.registerCommand('gpthelper.askGPT', async () => {
         const editor = vscode.window.activeTextEditor;
-
         if (!editor) {
             vscode.window.showWarningMessage('No active editor found.');
             return;
@@ -55,7 +57,6 @@ function activate(context) {
 
         const selection = editor.selection;
         const text = editor.document.getText(selection);
-
         if (!text.trim()) {
             vscode.window.showWarningMessage('No text selected to send to GPT.');
             return;
@@ -71,12 +72,11 @@ function activate(context) {
 
             const response = await sendGPTRequest(text);
 
-            const endTime = Date.now();
-            const duration = endTime - startTime;
+            const duration = Date.now() - startTime;
             logDebug('Received response from GPT', { duration: `${duration}ms`, response });
 
             if (response) {
-                chatHistory.push({ role: 'user', content: `${text}`, model: gpt_model });
+                chatHistory.push({ role: 'user', content: text, model: gpt_model });
                 chatHistory.push({ role: 'assistant', content: response, model: gpt_model });
 
                 if (askOutputReplace) {
@@ -114,21 +114,49 @@ function activate(context) {
     });
 
     const changeModel = vscode.commands.registerCommand('gpthelper.changeModel', async function () {
-        const newModel = await vscode.window.showQuickPick(Object.keys(possible_models).map(label => ({ label })), {
-            placeHolder: "Select a model",
-        });
-
+        const newModel = await vscode.window.showQuickPick(
+            Object.keys(possible_models).map(label => ({ label })),
+            { placeHolder: "Select a model" }
+        );
         if (!newModel) {
             return;
         }
-
         gpt_model = possible_models[newModel.label];
         maxTokens = max_tokens_options[gpt_model];
-        const infoMsg = 'Model changed to ' + gpt_model + '! (' + 'Max tokens set to ' + maxTokens.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ')';
-        vscode.window.showInformationMessage(infoMsg);
-        // format tokens using , to split up longer numbers
-        vscode.window.showInformationMessage( + '!');
+        vscode.window.showInformationMessage(`Model changed to ${gpt_model}! (Max tokens set to ${maxTokens.toLocaleString()})`);
         logDebug('Model changed.', { gpt_model, maxTokens });
+    });
+
+    const changeTemperature = vscode.commands.registerCommand('gpthelper.changeTemperature', async function () {
+        const newTemperature = await vscode.window.showInputBox({
+            prompt: "Enter the temperature value (0.0 - 1.0)",
+            password: false,
+        });
+        const newTemperatureFloat = parseFloat(newTemperature);
+        if (isNaN(newTemperatureFloat) || newTemperatureFloat < 0 || newTemperatureFloat > 1) {
+            vscode.window.showErrorMessage('Temperature must be a number between 0.0 and 1.0');
+            logDebug('Invalid temperature input.', { newTemperature });
+            return;
+        }
+        temperature = newTemperatureFloat;
+        vscode.window.showInformationMessage(`Temperature set to ${newTemperatureFloat}`);
+        logDebug('Temperature changed.', { temperature });
+    });
+
+    const changeTopP = vscode.commands.registerCommand('gpthelper.changeTopP', async function () {
+        const newTopP = await vscode.window.showInputBox({
+            prompt: "Enter the top_p value (0.0 - 1.0)",
+            password: false,
+        });
+        const newTopPFloat = parseFloat(newTopP);
+        if (isNaN(newTopPFloat) || newTopPFloat < 0 || newTopPFloat > 1) {
+            vscode.window.showErrorMessage('top_p must be a number between 0.0 and 1.0');
+            logDebug('Invalid top_p input.', { newTopP });
+            return;
+        }
+        topP = newTopPFloat;
+        vscode.window.showInformationMessage(`top_p set to ${newTopPFloat}`);
+        logDebug('top_p changed.', { topP });
     });
 
     const setKey = vscode.commands.registerCommand('gpthelper.setKey', async function () {
@@ -136,11 +164,9 @@ function activate(context) {
             prompt: "Enter your OpenAI API key",
             password: true,
         });
-
         if (!apiKey) {
             return;
         }
-
         private_key = apiKey;
         maxTokens = max_tokens_options[gpt_model];
         await context.globalState.update('openaiApiKey', apiKey);
@@ -153,20 +179,17 @@ function activate(context) {
             vscode.window.showErrorMessage('You must set your own API key to change the request limit');
             return;
         }
-
         const model_limit = max_tokens_options[gpt_model];
         const newLimit = await vscode.window.showInputBox({
-            prompt: "Enter your new request limit (0 - " + model_limit + ")",
+            prompt: `Enter your new request limit (0 - ${model_limit})`,
             password: false,
         });
-
         const newLimitInt = parseInt(newLimit, 10);
         if (isNaN(newLimitInt) || newLimitInt < 0 || newLimitInt > model_limit) {
-            vscode.window.showErrorMessage('Request limit must be a number between 0 and ' + model_limit);
+            vscode.window.showErrorMessage(`Request limit must be a number between 0 and ${model_limit}`);
             logDebug('Invalid request limit input.', { newLimit });
             return;
         }
-
         maxTokens = newLimitInt;
         vscode.window.showInformationMessage(`Request limit set to ${newLimitInt}`);
         logDebug('Request limit changed.', { maxTokens });
@@ -178,20 +201,18 @@ function activate(context) {
             if (message.role === 'user') {
                 content = `**User:** ${message.content}`;
             } else {
-                const gptModelName = Object.keys(possible_models).find(key => possible_models[key] === message.model);
+                const gptModelName = Object.keys(possible_models).find(key => possible_models[key] === message.model) || message.model;
                 content = `**${gptModelName}:** ${message.content}`;
             }
-            return `${'='.repeat(10)}\n` + content + `\n${'='.repeat(10)}\n`;
+            return `${'='.repeat(10)}\n${content}\n${'='.repeat(10)}\n`;
         }
 
         const chatHistoryText = chatHistory.map(message => chatHistorySingleMessage(message)).join('\n');
-
         if (!chatHistoryText) {
             vscode.window.showInformationMessage('No chat history available.');
             logDebug('Attempted to show chat history, but none exists.');
             return;
         }
-
         const chatHistoryEditor = await vscode.workspace.openTextDocument({ content: chatHistoryText, language: 'markdown' });
         await vscode.window.showTextDocument(chatHistoryEditor, { viewColumn: vscode.ViewColumn.Beside });
         logDebug('Displayed chat history.', { chatHistoryLength: chatHistory.length });
@@ -210,8 +231,10 @@ function activate(context) {
         setKey,
         changeLimit,
         changeModel,
+        changeTemperature,
+        changeTopP,
         showChatHistory,
-        clearChatHistory,
+        clearChatHistory
     );
 }
 
@@ -228,28 +251,29 @@ async function sendGPTRequest(text) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${private_key}`,
     };
+
+    // Build request payload
     const data = {
         model: gpt_model,
         messages: [{ role: "user", content: text }],
+        max_completion_tokens: maxTokens,
+        temperature: temperature !== null ? temperature : undefined,
+        top_p: topP
     };
 
     logDebug('Preparing to send GPT request.', { url, headers, data });
 
     try {
         const response = await axios.post(url, data, { headers });
-
         logDebug('Received response from GPT.', { status: response.status, data: response.data });
-
         if (response.status !== 200) {
             vscode.window.showErrorMessage(`Error getting response from GPT: Please check your API key`);
             logDebug('Non-200 response received.', { status: response.status, responseData: response.data });
             return null;
         }
-
         return response.data.choices[0].message.content;
     } catch (err) {
         logDebug('Error during GPT request.', { error: err.toString(), stack: err.stack });
-
         if (err.response) {
             const status = err.response.status;
             const errorData = err.response.data;
@@ -291,4 +315,4 @@ function deactivate() {}
 module.exports = {
     activate,
     deactivate
-}
+};
