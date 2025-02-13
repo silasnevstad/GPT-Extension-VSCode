@@ -14,15 +14,20 @@
   "activationEvents": [
     "onCommand:gpthelper.askGPT",
     "onCommand:gpthelper.askGPTFile",
-    "onCommand:gpthelper.insertResponseAsComment",
-    "onCommand:gpthelper.exportChatHistory",
+
     "onCommand:gpthelper.setKey",
-    "onCommand:gpthelper.changeLimit",
     "onCommand:gpthelper.changeModel",
-    "onCommand:gpthelper.showChatHistory",
-    "onCommand:gpthelper.clearChatHistory",
+    "onCommand:gpthelper.changeLimit",
+    "onCommand:gpthelper.changeTemperature",
+    "onCommand:gpthelper.changeTopP",
+    "onCommand:gpthelper.changeContextMode",
+    "onCommand:gpthelper.setContextLength",
     "onCommand:gpthelper.changeOutputMode",
-    "onCommand:gpthelper.changeDebugMode"
+    "onCommand:gpthelper.changeDebugMode",
+
+    "onCommand:gpthelper.exportChatHistory",
+    "onCommand:gpthelper.showChatHistory",
+    "onCommand:gpthelper.clearChatHistory"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -35,33 +40,34 @@
         "command": "gpthelper.askGPTFile",
         "title": "Ask GPT with File"
       },
-      {
-        "command": "gpthelper.insertResponseAsComment",
-        "title": "GPT: Insert Response as Comment"
-      },
-      {
-        "command": "gpthelper.exportChatHistory",
-        "title": "GPT: Export Chat History"
-      },
+
       {
         "command": "gpthelper.setKey",
         "title": "GPT: Set API Key"
-      },
-      {
-        "command": "gpthelper.changeLimit",
-        "title": "GPT: Change Token Limit"
       },
       {
         "command": "gpthelper.changeModel",
         "title": "GPT: Change Model"
       },
       {
-        "command": "gpthelper.showChatHistory",
-        "title": "GPT: Show Chat History"
+        "command": "gpthelper.changeLimit",
+        "title": "GPT: Change Token Limit"
       },
       {
-        "command": "gpthelper.clearChatHistory",
-        "title": "GPT: Clear Chat History"
+          "command": "gpthelper.changeTemperature",
+          "title": "GPT: Change Temperature"
+      },
+      {
+          "command": "gpthelper.changeTopP",
+          "title": "GPT: Change Top P"
+      },
+      {
+          "command": "gpthelper.changeContextMode",
+          "title": "GPT: Change Context Mode"
+      },
+      {
+          "command": "gpthelper.setContextLength",
+          "title": "GPT: Set Context Length"
       },
       {
         "command": "gpthelper.changeOutputMode",
@@ -70,6 +76,19 @@
       {
         "command": "gpthelper.changeDebugMode",
         "title": "GPT: Change Debug Mode"
+      },
+
+      {
+        "command": "gpthelper.showChatHistory",
+        "title": "GPT: Show Chat History"
+      },
+      {
+        "command": "gpthelper.exportChatHistory",
+        "title": "GPT: Export Chat History"
+      },
+      {
+        "command": "gpthelper.clearChatHistory",
+        "title": "GPT: Clear Chat History"
       }
     ],
     "keybindings": [

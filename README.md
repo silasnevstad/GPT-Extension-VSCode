@@ -34,10 +34,10 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 
 ### 🛠 **GPT: Set API Key** <div id="set-your-api-key"></div>
 1. Get an API key from [OpenAI's website](https://platform.openai.com).
-   - Navigate to **Dashboard** → **API Keys**.
-   - Click **"Create new secret key"** and copy it.
+  - Go to **Dashboard** → **API Keys**.
+  - Click **"Create new secret key"** and copy it.
 2. Press `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P` (Windows/Linux).
-3. Search for **"GPT: Set API Key"** and enter your key.
+3. Search for **"GPT: Set API Key"** and paste your key.
 
 ---
 
@@ -45,105 +45,113 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 - **Command**: `Ask GPT`
 - **Shortcut**: `Alt + Shift + I`
 - **Usage**:
-   - Highlight code or text.
-   - Run the **Ask GPT** command.
-   - The extension sends the selected text to GPT and displays the response.
+  - Highlight code or text.
+  - Run **Ask GPT**.
+  - GPT replies with the answer in a new document or replaces the selected text (based on [Output Mode](#gpt-change-output-mode)).
 
 ---
 
 ### 🛠 **Ask GPT with File**
 - **Command**: `Ask GPT with File`
 - **Usage**:
-   - Sends the **entire file** contents to GPT rather than just the highlighted text.
-
----
-
-### 🛠 **GPT: Insert Response as Comment**
-- **Command**: `GPT: Insert Response as Comment`
-- **Usage**:
-   - Prompts you for a GPT question.
-   - The response is inserted as comment(s) directly into your file at the cursor position.
-   - Great for in‑context code explanations.
+  - Sends the **entire file** contents to GPT instead of just highlighted text.
 
 ---
 
 ### 🛠 **GPT: Export Chat History**
 - **Command**: `GPT: Export Chat History`
 - **Usage**:
-   - Exports the entire multi‑turn conversation to a Markdown file of your choice.
-   - Perfect for saving a record of your Q&A session.
+  - Exports your entire conversation to a Markdown file—useful for sharing or later reference.
 
 ---
 
 ### 🛠 **GPT: Show Chat History**
 - **Command**: `GPT: Show Chat History`
 - **Usage**:
-   - Displays your entire multi‑turn conversation in a Markdown document, opened in a new pane.
+  - Displays your multi‑turn conversation as a Markdown document in a new pane.
 
 ---
 
 ### 🛠 **GPT: Clear Chat History**
 - **Command**: `GPT: Clear Chat History`
 - **Usage**:
-   - Resets the conversation context completely.
+  - Resets the entire conversation context, wiping all previous Q&A turns.
 
 ---
 
 ### 🛠 **GPT: Change Model**
 - **Command**: `GPT: Change Model`
 - **Usage**:
-   - Pick from the available models (e.g., `o1`, `GPT-4-Turbo`, etc.).
-   - Adjusts your conversation to that model for subsequent queries.
+  - Pick from available models (`o1`, `GPT-4-Turbo`, etc.).
+  - Subsequent requests use the chosen model.
 
 ---
 
 ### 🛠 **GPT: Change Token Limit**
 - **Command**: `GPT: Change Token Limit`
 - **Usage**:
-   - Sets the maximum number of tokens (response length) GPT can return.
-   - Useful for limiting or extending GPT’s response size, subject to each model’s max capacity.
-
----
-
-### 🛠 **GPT: Change Output Mode**
-- **Command**: `GPT: Change Output Mode`
-- **Usage**:
-   - Toggles between **"Replace Selection"** and **"New File"**.
-   - **Replace Selection** overwrites the highlighted text with GPT’s answer.
-   - **New File** opens the GPT response in a fresh editor tab.
-
----
-
-### 🛠 **GPT: Change Debug Mode**
-- **Command**: `GPT: Change Debug Mode`
-- **Usage**:
-   - Toggles debug output on or off.
-   - When on, logs details (request data, timing, errors) to the **GPT Debug** output channel (View → Output).
+  - Sets how many tokens GPT can return (up to each model’s maximum).
 
 ---
 
 ### 🛠 **GPT: Change Temperature**
 - **Command**: `GPT: Change Temperature`
 - **Usage**:
-   - Adjusts GPT’s “creativity” from `0.0` (more deterministic) to `1.0` (more random).
+  - Adjusts GPT’s “creativity” from `0.0` (deterministic) to `1.0` (more freeform).
 
 ---
 
-### 🛠 **GPT: Change top_p**
+### 🛠 **GPT: Change TopP**
 - **Command**: `GPT: Change TopP`
 - **Usage**:
-   - Restricts responses to top probability tokens, from `0.0` to `1.0`.
-   - Similar effect to `temperature` but can be used in tandem.
+  - Limits GPT to top‑probability tokens from `0.0`–`1.0`.
+  - Higher values allow more diverse tokens.
+
+---
+
+### 🛠 **GPT: Change Context Mode** <div id="gpt-change-context-mode"></div>
+- **Command**: `GPT: Change Context Mode`
+- **Options**:
+  - **No Context** – Ignores all previous messages, each query is single‑turn.
+  - **Last N Messages** – Considers only the most recent *N* turns from the conversation.
+  - **Full** – Considers the entire conversation for each new request.
+- **Usage**:
+  - Ideal for switching between single question/answer usage and deeper, multi‑turn conversation.
+
+---
+
+### 🛠 **GPT: Set Context Length**
+- **Command**: `GPT: Set Context Length`
+- **Usage**:
+  - If **Last N Messages** context mode is active, specify how many recent messages GPT considers.
+
+---
+
+### 🛠 **GPT: Change Output Mode**
+- **Command**: `GPT: Change Output Mode`
+- **Usage**:
+  - Toggles between **"Replace Selection"** or **"New File"**.
+  - In “Replace Selection” mode, GPT’s response overwrites the text you highlighted.
+  - In “New File” mode, GPT’s response opens in a fresh editor tab.
+
+---
+
+### 🛠 **GPT: Change Debug Mode**
+- **Command**: `GPT: Change Debug Mode`
+- **Usage**:
+  - Shows or hides detailed logs in the **GPT Debug** output channel for troubleshooting.
+
+---
 
 <br>
 <div id="features"></div>
 
-## ✨️ Additional Features
+## ✨ Additional Features
 
-- **Multi‑turn Chat**: The extension remembers the conversation context, so your next question can build on previous answers.
-- **Error & Rate Limit Handling**: Clear messages for invalid keys, model issues, or rate limits.
-- **Cross‑Language Support**: Works for code or text in any language supported by VSCode.
-- **API Key Storage**: Your key is saved securely in VS Code’s local storage.
+- **Flexible Conversation Context**: Choose no context, the last N messages, or the entire session for each query.
+- **Error & Rate Limit Handling**: Clear messages for invalid keys, missing model, or rate limits.
+- **Cross‑Language Support**: Works for code or text in any language recognized by VSCode.
+- **API Key Storage**: Securely stores your API key in VSCode’s global state.
 
 <br>
 <div id="release-notes"></div>
@@ -151,16 +159,17 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 ## 📒 Release Notes
 
 ### 1.1.0
-- **Multi‑turn chat** for continuous conversation flow.
+- **Conversation Context Modes**:
+  - **No Context**, **Last N Messages**, or **Full** conversation reference.
+  - **Set Context Length** for Last N mode.
 - Support for latest models (`o3-mini`).
 - **Change temperature** and **top_p** settings.
 - **Export chat history** to a Markdown file.
 - **Insert response as comment** in your code.
 
 ### 1.0.0
-
-- Support for latest models (`o1`, etc.).
-- Improved chat history readability.
+- Support for newest models (`o1`, etc.).
+- Improved chat history and advanced error handling.
 - Keyboard shortcut (`Alt + Shift + I`).
 
 #### 0.4.8
@@ -185,8 +194,9 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 - Removed shared API Key usage.
 
 #### 0.2.2
-- Compatible with VSCode 1.7 and above.
-- Added GPT‑4, basic chat history.
+- Compatible with VSCode 1.7+.
+- Basic multi‑turn chat.
+- Added GPT‑4.
 
 #### 0.1.3
 - Handled errors for shared API key usage.
@@ -195,15 +205,15 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 
 ## ⚙️ Troubleshooting
 
-- **Invalid Key**: Ensure your key is correct and active at OpenAI’s [API Keys](https://platform.openai.com/account/api-keys).
-- **Rate Limits**: If you hit a request limit, wait a few seconds or check your [OpenAI usage dashboard](https://platform.openai.com/account/usage).
-- **Debugging**: Toggle **"GPT: Change Debug Mode"** to see request logs in the **GPT Debug** output channel.
+- **Invalid Key**: Double‑check at [OpenAI’s API Keys](https://platform.openai.com/account/api-keys).
+- **Rate Limits**: If usage is too high, wait or check your [OpenAI usage dashboard](https://platform.openai.com/account/usage).
+- **Debugging**: Toggle **"GPT: Change Debug Mode"** to see request logs in **GPT Debug**.
 
 <br>
 
 ## License
 
-[MIT License](LICENSE) – Open‑source for ease of use and contributions.
+[MIT License](LICENSE) – Open‑source for flexibility and contributions.
 
 <br>
 
