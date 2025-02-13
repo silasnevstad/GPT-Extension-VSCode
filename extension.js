@@ -114,8 +114,7 @@ async function sendGPTRequest(userPrompt) {
     const data = {
         model: gptModel,
         messages: buildMessages(userPrompt),
-        // Official usage: "max_tokens"
-        max_tokens: maxTokens,
+        max_completion_tokens: maxTokens,
         temperature: temperature !== null ? temperature : undefined,
         top_p: topP
     };
