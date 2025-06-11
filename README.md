@@ -152,11 +152,15 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 - **Error & Rate Limit Handling**: Clear messages for invalid keys, missing model, or rate limits.
 - **Cross‑Language Support**: Works for code or text in any language recognized by VSCode.
 - **API Key Storage**: Securely stores your API key in VSCode’s global state.
+- **Project Instructions**: Place a `.gpt-instruction` file in your workspace to automatically prefix each query with custom guidance.
 
 <br>
 <div id="release-notes"></div>
 
 ## 📒 Release Notes
+
+### 1.1.1
+- **Per-Project Instructions**: Queries are prefixed with the contents of `.gpt-instruction` if present in the workspace.
 
 ### 1.1.0
 - **Conversation Context Modes**:

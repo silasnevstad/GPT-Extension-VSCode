@@ -57,6 +57,28 @@ function logDebug(message, details = {}) {
 // In-memory chat history
 let chatHistory = [];
 
+// Cached project instruction
+let projectInstruction = '';
+
+// Load project instruction from a ".gpt-instruction" file in the workspace
+function loadProjectInstruction() {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || !folders.length) {
+        projectInstruction = '';
+        return;
+    }
+
+    const filePath = path.join(folders[0].uri.fsPath, '.gpt-instruction');
+    try {
+        projectInstruction = fs.existsSync(filePath)
+            ? fs.readFileSync(filePath, 'utf8')
+            : '';
+    } catch (err) {
+        logDebug('Error reading .gpt-instruction', { error: err.message });
+        projectInstruction = '';
+    }
+}
+
 // Format chat history as Markdown
 function formatChatHistory() {
     return chatHistory
@@ -69,7 +91,7 @@ function formatChatHistory() {
 }
 
 // Build messages array from chat history based on contextMode
-function buildMessages(userPrompt) {
+function buildMessages(userPrompt, instruction) {
     let relevantHistory = [];
 
     switch (contextMode) {
@@ -88,17 +110,21 @@ function buildMessages(userPrompt) {
             break;
     }
 
-    const messages = relevantHistory.map(msg => ({
+    const messages = [];
+    if (instruction) {
+        messages.push({ role: 'system', content: instruction });
+    }
+    messages.push(...relevantHistory.map(msg => ({
         role: msg.role,
         content: msg.content
-    }));
+    })));
     // Add the new user message
     messages.push({ role: 'user', content: userPrompt });
     return messages;
 }
 
 // Send GPT request (multi-turn aware via buildMessages)
-async function sendGPTRequest(userPrompt) {
+async function sendGPTRequest(userPrompt, instruction) {
     if (!privateKey) {
         vscode.window.showErrorMessage('Please set your API key first (GPT: Set API Key).');
         logDebug('No API key set');
@@ -113,7 +139,7 @@ async function sendGPTRequest(userPrompt) {
 
     const data = {
         model: gptModel,
-        messages: buildMessages(userPrompt),
+        messages: buildMessages(userPrompt, instruction),
         max_completion_tokens: maxTokens,
         temperature: temperature !== null ? temperature : undefined,
         top_p: topP
@@ -174,7 +200,7 @@ async function askGPTHandler(useWholeFile = false) {
         cancellable: true
     }, async () => {
         const startTime = Date.now();
-        const response = await sendGPTRequest(queryText);
+        const response = await sendGPTRequest(queryText, projectInstruction);
         const duration = Date.now() - startTime;
         logDebug('GPT response time', { durationMs: duration });
 
@@ -262,6 +288,16 @@ function activate(context) {
     // Load existing API key
     const apiKey = context.globalState.get('openaiApiKey');
     if (apiKey) privateKey = apiKey;
+
+    // Load .gpt-instruction file once
+    loadProjectInstruction();
+
+    // Watch for changes .gpt-instruction file
+    const watcher = vscode.workspace.createFileSystemWatcher('**/.gpt-instruction');
+    watcher.onDidCreate(loadProjectInstruction);
+    watcher.onDidChange(loadProjectInstruction);
+    watcher.onDidDelete(() => projectInstruction = '');
+    context.subscriptions.push(watcher);
 
     // Register commands
     const commands = [
