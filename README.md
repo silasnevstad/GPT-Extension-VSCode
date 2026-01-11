@@ -4,6 +4,16 @@ Use OpenAI, Anthropic, or Gemini models inside Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
+## Contents
+- [Supported Models](#models)
+- [Getting Started](#getting-started)
+- [Key Commands](#instructions)
+- [Additional Features](#features)
+- [Release Notes](#release-notes)
+- [Troubleshooting](#troubleshooting)
+- [Support the Project](#support)
+- [License](#license)
+
 <div id="models"></div>
 
 ## Supported Models
@@ -239,6 +249,8 @@ Each provider shows its current status (**Configured** or **Not set**).
 
 <br>
 
+<div id="troubleshooting"></div>
+
 ## ⚙️ Troubleshooting
 
 - **Invalid or Missing API Key**: Run **GPT: Manage API Keys** and verify the key for the active provider.
@@ -247,12 +259,24 @@ Each provider shows its current status (**Configured** or **Not set**).
 
 <br>
 
+<div id="support"></div>
+
+## ❤️ Support the Project
+
+GPT is free and open-source. If this extension saves you time or helps your workflow,
+you can optionally support my work on it.
+
+Support helps cover maintenance, testing against new model APIs,
+and ongoing improvements (but the extension will remain free).
+
+- [☕ **Buy Me a Coffee**](https://buymeacoffee.com/silasnevstad)
+- [⭐ **GitHub Sponsors**](https://github.com/sponsors/silasnevstad)
+
+
+<div id="license"></div>
+
 ## License
 
 [MIT License](LICENSE) – Open‑source for flexibility and contributions.
-
-<br>
-
-> **Happy Coding & Prompting!**
 
 <br>
