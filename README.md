@@ -39,6 +39,8 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 2. Press `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P` (Windows/Linux).
 3. Search for **"GPT: Set API Key"** and paste your key.
 
+> API keys are stored in VS Code SecretStorage (stored securely). Legacy keys previously stored in globalState are migrated automatically.
+
 ---
 
 ### 🛠 **Ask GPT**
@@ -151,8 +153,17 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 - **Flexible Conversation Context**: Choose no context, the last N messages, or the entire session for each query.
 - **Error & Rate Limit Handling**: Clear messages for invalid keys, missing model, or rate limits.
 - **Cross‑Language Support**: Works for code or text in any language recognized by VSCode.
-- **API Key Storage**: Securely stores your API key in VSCode’s global state.
+- **API Key Storage**: Stores your API key in VS Code SecretStorage (stored securely) and migrates legacy keys previously stored in globalState.
 - **Project Instructions**: Place a `.gpt-instruction` file in your workspace to automatically prefix each query with custom guidance.
+
+### `.gpt-instruction`
+
+- Multi-root: instructions resolve per workspace folder based on the active document.
+- Lookup modes:
+  - `workspaceRoot` (default): uses `<workspaceFolder>/.gpt-instruction`
+  - `nearestParent`: searches from the document directory up to the workspace folder root; the first `.gpt-instruction` found is used
+- Note: `nearestParent` may be more expensive in very large repositories (it watches for `.gpt-instruction` files recursively).
+- In `nearestParent`, an empty `.gpt-instruction` file suppresses parent directory instructions.
 
 <br>
 <div id="release-notes"></div>

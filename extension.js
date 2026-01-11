@@ -1,8 +1,6 @@
 const vscode = require('vscode');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+const { ProjectInstructionManager } = require('./projectInstructionManager');
 
 // --- Global State Variables ---
 let privateKey = null;          // OpenAI API Key
@@ -40,43 +38,42 @@ let maxTokens = modelMaxTokens[gptModel];
 let temperature = null;  // If not set, API uses default
 let topP = 1;            // Default top_p
 
-// Debug logger
-const outputChannel = vscode.window.createOutputChannel("GPT Debug");
-
-function logDebug(message, details = {}) {
-    if (!debugMode) return;
-    const timestamp = new Date().toISOString();
-    outputChannel.show(true);
-    outputChannel.appendLine(`[${timestamp}] ${message}`);
-    if (Object.keys(details).length > 0) {
-        outputChannel.appendLine(JSON.stringify(details, null, 2));
-    }
-    outputChannel.appendLine('---');
-}
+// Debug logger (initialized in activate)
+let outputChannel;
 
 // In-memory chat history
 let chatHistory = [];
 
-// Cached project instruction
-let projectInstruction = '';
+// Project instruction manager
+let instructionManager = null;
 
-// Load project instruction from a ".gpt-instruction" file in the workspace
-function loadProjectInstruction() {
-    const folders = vscode.workspace.workspaceFolders;
-    if (!folders || !folders.length) {
-        projectInstruction = '';
-        return;
-    }
+// SecretStorage warning (shown once per session)
+let secretStorageWarned = false;
 
-    const filePath = path.join(folders[0].uri.fsPath, '.gpt-instruction');
-    try {
-        projectInstruction = fs.existsSync(filePath)
-            ? fs.readFileSync(filePath, 'utf8')
-            : '';
-    } catch (err) {
-        logDebug('Error reading .gpt-instruction', { error: err.message });
-        projectInstruction = '';
+function safeErrorDetails(err) {
+    return {
+        name: typeof err?.name === 'string' ? err.name : 'Error',
+        code: typeof err?.code === 'string' ? err.code : undefined
+    };
+}
+
+function warnSecretStorageOnce() {
+    if (secretStorageWarned) return;
+    secretStorageWarned = true;
+    vscode.window.showWarningMessage(
+        'Unable to access VS Code Secret Storage. API keys cannot be loaded or saved.'
+    );
+}
+
+// Debug logger
+function logDebug(message, details = {}) {
+    if (!debugMode || !outputChannel) return;
+    const timestamp = new Date().toISOString();
+    outputChannel.appendLine(`[${timestamp}] ${message}`);
+    if (details && Object.keys(details).length > 0) {
+        outputChannel.appendLine(JSON.stringify(details, null, 2));
     }
+    outputChannel.appendLine('---');
 }
 
 // Format chat history as Markdown
@@ -124,7 +121,7 @@ function buildMessages(userPrompt, instruction) {
 }
 
 // Send GPT request (multi-turn aware via buildMessages)
-async function sendGPTRequest(userPrompt, instruction) {
+async function sendGPTRequest(userPrompt, instruction, options = {}) {
     if (!privateKey) {
         vscode.window.showErrorMessage('Please set your API key first (GPT: Set API Key).');
         logDebug('No API key set');
@@ -145,15 +142,35 @@ async function sendGPTRequest(userPrompt, instruction) {
         top_p: topP
     };
 
-    logDebug('Sending GPT request', { gptModel, maxTokens, temperature, topP, contextMode, contextLength });
+    logDebug('Sending GPT request', { gptModel, maxTokens, temperature, topP, contextMode, contextLength, hasProjectInstruction: Boolean(instruction) });
+
     try {
-        const response = await axios.post(url, data, { headers });
+        const response = await axios.post(url, data, {
+            headers,
+            timeout: 120000,
+            signal: options.signal
+        });
+
+        if (options.signal?.aborted === true) return null;
+
         if (response.status !== 200) {
             vscode.window.showErrorMessage(`Error: Received status ${response.status}`);
             return null;
         }
-        return response.data.choices[0].message.content;
+        return response?.data?.choices?.[0]?.message?.content ?? null;
     } catch (err) {
+        // Cancellation: silent based on AbortSignal first.
+        if (options.signal?.aborted === true) {
+            logDebug('GPT request canceled');
+            return null;
+        }
+
+        // Cancellation: avoid noisy UI errors.
+        if (err && (err.code === 'ERR_CANCELED' || err.name === 'CanceledError')) {
+            logDebug('GPT request canceled');
+            return null;
+        }
+
         if (err.response) {
             const { status, data: errorData } = err.response;
             if (status === 404) {
@@ -168,10 +185,10 @@ async function sendGPTRequest(userPrompt, instruction) {
             logDebug('GPT API error', { status, errorData });
         } else if (err.request) {
             vscode.window.showErrorMessage('No response received from GPT API.');
-            logDebug('No response from GPT API', { error: err.message });
+            logDebug('No response from GPT API', safeErrorDetails(err));
         } else {
             vscode.window.showErrorMessage(`Unexpected error: ${err.message}`);
-            logDebug('Unexpected error', { error: err.message });
+            logDebug('Unexpected error', safeErrorDetails(err));
         }
         return null;
     }
@@ -194,31 +211,48 @@ async function askGPTHandler(useWholeFile = false) {
         return;
     }
 
-    vscode.window.withProgress({
+    await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: 'Asking GPT...',
         cancellable: true
-    }, async () => {
-        const startTime = Date.now();
-        const response = await sendGPTRequest(queryText, projectInstruction);
-        const duration = Date.now() - startTime;
-        logDebug('GPT response time', { durationMs: duration });
+    }, async (_progress, token) => {
+        const abortController = new AbortController();
+        const cancelSub = token.onCancellationRequested(() => abortController.abort());
 
-        if (response) {
-            // Save to chat history
-            chatHistory.push({ role: 'user', content: queryText, model: gptModel, timestamp: Date.now() });
-            chatHistory.push({ role: 'assistant', content: response, model: gptModel, timestamp: Date.now() });
+        try {
+            const startTime = Date.now();
 
-            if (outputReplace && !useWholeFile) {
-                // Replace selected text
-                editor.edit(editBuilder => {
-                    editBuilder.replace(editor.selection, response);
-                });
-            } else {
-                // Open response in a new document
-                const doc = await vscode.workspace.openTextDocument({ content: response });
-                vscode.window.showTextDocument(doc);
+            const instruction = instructionManager
+                ? await instructionManager.getInstruction(editor.document)
+                : '';
+
+            if (token.isCancellationRequested) return;
+
+            const response = await sendGPTRequest(queryText, instruction, { signal: abortController.signal });
+            const duration = Date.now() - startTime;
+            logDebug('GPT response time', { durationMs: duration });
+
+            // If the user canceled after the request completed, do nothing.
+            if (token.isCancellationRequested || abortController.signal.aborted) return;
+
+            if (response) {
+                // Save to chat history
+                chatHistory.push({ role: 'user', content: queryText, model: gptModel, timestamp: Date.now() });
+                chatHistory.push({ role: 'assistant', content: response, model: gptModel, timestamp: Date.now() });
+
+                if (outputReplace && !useWholeFile) {
+                    // Replace selected text
+                    await editor.edit(editBuilder => {
+                        editBuilder.replace(editor.selection, response);
+                    });
+                } else {
+                    // Open response in a new document
+                    const doc = await vscode.workspace.openTextDocument({ content: response });
+                    await vscode.window.showTextDocument(doc);
+                }
             }
+        } finally {
+            cancelSub.dispose();
         }
     });
 }
@@ -230,9 +264,7 @@ async function exportChatHistory() {
         return;
     }
 
-    const defaultUri = vscode.workspace.workspaceFolders
-        ? vscode.Uri.file(vscode.workspace.workspaceFolders[0].uri.fsPath)
-        : undefined;
+    const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
 
     const uri = await vscode.window.showSaveDialog({
         defaultUri,
@@ -242,13 +274,14 @@ async function exportChatHistory() {
     if (!uri) return;
 
     const mdContent = formatChatHistory();
-    fs.writeFile(uri.fsPath, mdContent, err => {
-        if (err) {
-            vscode.window.showErrorMessage(`Error exporting: ${err.message}`);
-        } else {
-            vscode.window.showInformationMessage('Chat history exported successfully!');
-        }
-    });
+
+    try {
+        await vscode.workspace.fs.writeFile(uri, Buffer.from(mdContent, 'utf8'));
+        vscode.window.showInformationMessage('Chat history exported successfully!');
+    } catch (err) {
+        vscode.window.showErrorMessage('Error exporting chat history.');
+        logDebug('Export chat history failed', safeErrorDetails(err));
+    }
 }
 
 // Change context mode (none, lastN, full)
@@ -283,21 +316,51 @@ async function setContextLength() {
     logDebug('Context length changed', { contextLength });
 }
 
+async function loadApiKey(context) {
+    // Prefer SecretStorage; migrate legacy globalState key if present.
+    let secret;
+    try {
+        secret = await context.secrets.get('openaiApiKey');
+    } catch (err) {
+        warnSecretStorageOnce();
+        logDebug('SecretStorage: get failed', safeErrorDetails(err));
+    }
+    if (typeof secret === 'string' && secret.trim()) {
+        privateKey = secret;
+        return;
+    }
+
+    const legacy = context.globalState.get('openaiApiKey');
+    if (typeof legacy === 'string' && legacy.trim()) {
+        privateKey = legacy;
+        try {
+            await context.secrets.store('openaiApiKey', legacy);
+            try {
+                await context.globalState.update('openaiApiKey', undefined);
+            } catch (err) {
+                logDebug('Legacy key cleanup failed', safeErrorDetails(err));
+            }
+        } catch (err) {
+            warnSecretStorageOnce();
+            logDebug('API key migration failed', safeErrorDetails(err));
+        }
+    }
+}
+
 // --- Activation & Deactivation ---
-function activate(context) {
-    // Load existing API key
-    const apiKey = context.globalState.get('openaiApiKey');
-    if (apiKey) privateKey = apiKey;
+async function activate(context) {
+    outputChannel = vscode.window.createOutputChannel("GPT Debug");
+    context.subscriptions.push(outputChannel);
 
-    // Load .gpt-instruction file once
-    loadProjectInstruction();
+    await loadApiKey(context);
 
-    // Watch for changes .gpt-instruction file
-    const watcher = vscode.workspace.createFileSystemWatcher('**/.gpt-instruction');
-    watcher.onDidCreate(loadProjectInstruction);
-    watcher.onDidChange(loadProjectInstruction);
-    watcher.onDidDelete(() => projectInstruction = '');
-    context.subscriptions.push(watcher);
+    // Initialize .gpt-instruction manager (multi-root aware)
+    instructionManager = new ProjectInstructionManager({
+        logDebug,
+        warnUser: (msg) => vscode.window.showWarningMessage(msg)
+    });
+    instructionManager.initialize();
+    context.subscriptions.push(instructionManager);
 
     // Register commands
     const commands = [
@@ -314,6 +377,7 @@ function activate(context) {
         vscode.commands.registerCommand('gpthelper.changeDebugMode', () => {
             debugMode = !debugMode;
             vscode.window.showInformationMessage(`Debug mode is now ${debugMode ? "On" : "Off"}.`);
+            if (debugMode) outputChannel.show(true);
             logDebug('Debug mode toggled', { debugMode });
         }),
 
@@ -375,11 +439,29 @@ function activate(context) {
                 prompt: "Enter your OpenAI API key",
                 password: true
             });
-            if (!newKey) return;
-            privateKey = newKey;
-            await context.globalState.update('openaiApiKey', newKey);
-            vscode.window.showInformationMessage('API key set successfully!');
-            logDebug('API key set');
+            if (!newKey || !newKey.trim()) return;
+
+            privateKey = newKey.trim();
+            let stored = false;
+            try {
+                await context.secrets.store('openaiApiKey', privateKey);
+                stored = true;
+            } catch (err) {
+                warnSecretStorageOnce();
+                logDebug('SecretStorage: store failed', safeErrorDetails(err));
+            }
+            if (stored) {
+                try {
+                    await context.globalState.update('openaiApiKey', undefined); // remove legacy if present
+                } catch (err) {
+                    logDebug('Legacy key cleanup failed', safeErrorDetails(err));
+                }
+                vscode.window.showInformationMessage('API key set successfully!');
+                logDebug('API key set');
+                return;
+            }
+
+            vscode.window.showInformationMessage('API key set for this session (not saved).');
         }),
 
         // Change request token limit
@@ -418,7 +500,7 @@ function activate(context) {
                 content: formatChatHistory(),
                 language: 'markdown'
             });
-            vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+            await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
             logDebug('Displayed chat history', { length: chatHistory.length });
         }),
 

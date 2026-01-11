@@ -2,6 +2,11 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 1.1.1
+- Hardened `.gpt-instruction` loading with absolute size caps and safer filesystem handling.
+- Improved SecretStorage error handling and legacy key migration.
+- Made request cancellation silent and more reliable.
+
 ## 0.4.7
 - Added debug mode with logging.
 
