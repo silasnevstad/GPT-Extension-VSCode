@@ -1,9 +1,9 @@
 {
   "name": "gpthelper",
   "displayName": "GPT",
-  "description": "Use OpenAI's models inside VS Code",
+  "description": "Use OpenAI, Anthropic, or Gemini models inside VS Code",
   "icon": "icon.jpg",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -15,6 +15,8 @@
     "onCommand:gpthelper.askGPT",
     "onCommand:gpthelper.askGPTFile",
     "onCommand:gpthelper.setKey",
+    "onCommand:gpthelper.manageApiKeys",
+    "onCommand:gpthelper.changeProvider",
     "onCommand:gpthelper.changeModel",
     "onCommand:gpthelper.changeLimit",
     "onCommand:gpthelper.changeTemperature",
@@ -27,11 +29,42 @@
     "onCommand:gpthelper.showChatHistory",
     "onCommand:gpthelper.clearChatHistory"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
       "title": "GPT",
       "properties": {
+        "gpthelper.provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "anthropic",
+            "gemini"
+          ],
+          "default": "openai",
+          "description": "LLM provider used for requests. Default: openai."
+        },
+        "gpthelper.openai.model": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "OpenAI model id (used when provider = openai)."
+        },
+        "gpthelper.anthropic.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-5-20250929",
+          "description": "Anthropic model id (used when provider = anthropic)."
+        },
+        "gpthelper.gemini.model": {
+          "type": "string",
+          "default": "gemini-2.5-flash",
+          "description": "Gemini model id (used when provider = gemini)."
+        },
+        "gpthelper.maxOutputTokens": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Max output tokens (0 = provider/model default or known max)."
+        },
         "gpthelper.projectInstruction.enabled": {
           "type": "boolean",
           "default": true,
@@ -66,7 +99,15 @@
       },
       {
         "command": "gpthelper.setKey",
-        "title": "GPT: Set API Key"
+        "title": "GPT: Set API Key (Deprecated)"
+      },
+      {
+        "command": "gpthelper.manageApiKeys",
+        "title": "GPT: Manage API Keys"
+      },
+      {
+        "command": "gpthelper.changeProvider",
+        "title": "GPT: Change Provider"
       },
       {
         "command": "gpthelper.changeModel",
@@ -82,7 +123,7 @@
       },
       {
         "command": "gpthelper.changeTopP",
-        "title": "GPT: Change Top P"
+        "title": "GPT: Change TopP"
       },
       {
         "command": "gpthelper.changeContextMode",
@@ -121,6 +162,12 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "gpthelper.setKey",
+          "when": "false"
+        }
+      ],
       "editor/context": [
         {
           "command": "gpthelper.askGPT",
@@ -138,7 +185,9 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
-    "test": "node ./test/runTest.js",
+    "test:unit": "mocha \"test/unit/**/*.test.js\"",
+    "test:smoke": "node ./test/runTest.js",
+    "test": "npm run test:unit && npm run test:smoke",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild-base": "esbuild ./extension.js --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "esbuild": "npm run esbuild-base -- --sourcemap",
@@ -157,6 +206,9 @@
     "glob": "^8.1.0",
     "globals": "^15.4.0",
     "mocha": "^10.1.0",
+    "proxyquire": "^2.1.3",
+    "sinon": "^17.0.1",
+    "typescript": "^5.4.5",
     "vscode": "^1.1.37"
   },
   "dependencies": {

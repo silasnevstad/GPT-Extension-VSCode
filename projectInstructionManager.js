@@ -44,6 +44,7 @@ const DEFAULT_HARD_READ_BYTES = 1024 * 1024; // 1MiB
  *   skippedTooLarge: boolean,
  *   outOfBounds: boolean,
  *   size: number,
+ *   version: number,
  *   refreshPromise?: Promise<void>
  * }} CacheEntry
  */
@@ -65,7 +66,7 @@ function readConfig() {
 
     const maxBytes = Math.min(ABSOLUTE_MAX_BYTES, Math.max(MIN_MAX_BYTES, maxBytesNum));
 
-    return { enabled, lookup, maxBytes };
+    return {enabled, lookup, maxBytes};
 }
 
 function isFileNotFoundError(err) {
@@ -167,7 +168,10 @@ async function readFirstBytesFromDisk(fsPath, bytesToRead) {
         const res = await fh.read(buf, 0, bytesToRead, 0);
         return res.bytesRead === bytesToRead ? buf : buf.slice(0, res.bytesRead);
     } finally {
-        try { await fh?.close(); } catch { /* ignore */ }
+        try {
+            await fh?.close();
+        } catch { /* ignore */
+        }
     }
 }
 
@@ -180,16 +184,16 @@ async function readFirstBytesFromDisk(fsPath, bytesToRead) {
  */
 async function readInstructionFile(instructionUri, folder, config, logDebug) {
     if (!config.enabled) {
-        return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0 };
+        return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0};
     }
 
     // Enforce workspace-folder boundary by URI path (realpath guard handles symlinks).
     if (instructionUri.scheme !== folder.uri.scheme || instructionUri.authority !== folder.uri.authority) {
-        return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: true, size: 0 };
+        return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: true, size: 0};
     }
     const rel = path.posix.relative(folder.uri.path, instructionUri.path);
     if (rel.startsWith('..') || path.posix.isAbsolute(rel)) {
-        return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: true, size: 0 };
+        return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: true, size: 0};
     }
 
     /** @type {vscode.FileStat | undefined} */
@@ -198,10 +202,10 @@ async function readInstructionFile(instructionUri, folder, config, logDebug) {
         stat = await vscode.workspace.fs.stat(instructionUri);
     } catch (err) {
         if (isFileNotFoundError(err)) {
-            return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0 };
+            return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0};
         }
         logDebug('ProjectInstruction: stat failed', safeErrorDetails(err));
-        return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0 };
+        return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0};
     }
 
     const size = typeof stat.size === 'number' ? stat.size : 0;
@@ -211,7 +215,7 @@ async function readInstructionFile(instructionUri, folder, config, logDebug) {
     const within = await realpathIsWithinWorkspaceFolder(instructionUri, folder.uri);
     if (!within) {
         // Treat as not found.
-        return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: true, size };
+        return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: true, size};
     }
 
     const truncated = size > maxBytes;
@@ -225,21 +229,21 @@ async function readInstructionFile(instructionUri, folder, config, logDebug) {
 
         if (size > hardMax) {
             // Treat as not found.
-            return { exists: false, text: '', truncated: false, skippedTooLarge: true, outOfBounds: false, size };
+            return {exists: false, text: '', truncated: false, skippedTooLarge: true, outOfBounds: false, size};
         }
 
         try {
             const bytes = await vscode.workspace.fs.readFile(instructionUri);
             const slice = truncated ? bytes.subarray(0, maxBytes) : bytes;
             const text = normalizeInstruction(Buffer.from(slice).toString('utf8'));
-            return { exists: true, text, truncated, skippedTooLarge: false, outOfBounds: false, size };
+            return {exists: true, text, truncated, skippedTooLarge: false, outOfBounds: false, size};
         } catch (err) {
             if (isFileNotFoundError(err)) {
-                return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0 };
+                return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0};
             }
             logDebug('ProjectInstruction: read failed', safeErrorDetails(err));
             // Unreadable: treat as not found
-            return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size };
+            return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size};
         }
     }
 
@@ -248,14 +252,14 @@ async function readInstructionFile(instructionUri, folder, config, logDebug) {
         const bytesToRead = Math.min(size, maxBytes);
         const buf = await readFirstBytesFromDisk(instructionUri.fsPath, bytesToRead);
         const text = normalizeInstruction(buf.toString('utf8'));
-        return { exists: true, text, truncated, skippedTooLarge: false, outOfBounds: false, size };
+        return {exists: true, text, truncated, skippedTooLarge: false, outOfBounds: false, size};
     } catch (err) {
         if (isFileNotFoundError(err)) {
-            return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0 };
+            return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size: 0};
         }
         logDebug('ProjectInstruction: disk read failed', safeErrorDetails(err));
         // Unreadable => treat as not found.
-        return { exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size };
+        return {exists: false, text: '', truncated: false, skippedTooLarge: false, outOfBounds: false, size};
     }
 }
 
@@ -268,7 +272,8 @@ class ProjectInstructionManager {
      */
     constructor(opts = {}) {
         /** @type {(msg: string, details?: any) => void} */
-        this._logDebug = typeof opts.logDebug === 'function' ? opts.logDebug : () => {};
+        this._logDebug = typeof opts.logDebug === 'function' ? opts.logDebug : () => {
+        };
         /** @type {(msg: string) => void} */
         this._warnUser = typeof opts.warnUser === 'function' ? opts.warnUser : (msg) => vscode.window.showWarningMessage(msg);
 
@@ -328,13 +333,19 @@ class ProjectInstructionManager {
     dispose() {
         for (const state of this._states.values()) {
             for (const d of state.disposables) {
-                try { d.dispose(); } catch { /* ignore */ }
+                try {
+                    d.dispose();
+                } catch { /* ignore */
+                }
             }
         }
         this._states.clear();
 
         for (const d of this._disposables) {
-            try { d.dispose(); } catch { /* ignore */ }
+            try {
+                d.dispose();
+            } catch { /* ignore */
+            }
         }
         this._disposables = [];
     }
@@ -413,7 +424,10 @@ class ProjectInstructionManager {
         if (!state) return;
 
         for (const d of state.disposables) {
-            try { d.dispose(); } catch { /* ignore */ }
+            try {
+                d.dispose();
+            } catch { /* ignore */
+            }
         }
         this._states.delete(key);
     }
@@ -424,7 +438,10 @@ class ProjectInstructionManager {
     _rebuildWatcher(state) {
         // Dispose existing watcher/listeners
         for (const d of state.disposables) {
-            try { d.dispose(); } catch { /* ignore */ }
+            try {
+                d.dispose();
+            } catch { /* ignore */
+            }
         }
         state.disposables = [];
 
@@ -467,7 +484,7 @@ class ProjectInstructionManager {
             entry.size = 0;
             entry.refreshPromise = undefined;
 
-            this._logDebug('ProjectInstruction: cleared', { present: false });
+            this._logDebug('ProjectInstruction: cleared', {present: false});
             return;
         }
 
@@ -482,7 +499,13 @@ class ProjectInstructionManager {
      */
     _ensureEntry(state, key) {
         const existing = state.cache.get(key);
-        if (existing) return existing;
+        if (existing) {
+            // Normalization for older/partial entries.
+            if (typeof existing.version !== 'number' || !Number.isFinite(existing.version)) {
+                existing.version = 0;
+            }
+            return existing;
+        }
 
         /** @type {CacheEntry} */
         const entry = {

@@ -2,6 +2,12 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 1.2.0
+- Added multi-provider support (OpenAI / Anthropic / Gemini) with centralized routing and normalized error handling.
+- Added unified **GPT: Manage API Keys** (SecretStorage-backed) and deprecated **GPT: Set API Key** as an internal redirect only.
+- Added dynamic model discovery with caching and filtering, plus explicit **Refresh model list (online)**.
+- Updated OpenAI integration to use the Responses API request pattern.
+
 ## 1.1.1
 - Hardened `.gpt-instruction` loading with absolute size caps and safer filesystem handling.
 - Improved SecretStorage error handling and legacy key migration.

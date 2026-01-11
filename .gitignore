@@ -6,7 +6,6 @@ node_modules
 dist
 icon.jpg
 vsc-extension-quickstart.md
-test
 LICENSE.TXT
 demo.mov
 demo2.mov
@@ -16,4 +15,3 @@ demo3.mov
 .eslintrc.json
 eslint.config.mjs
 .idea
-.vscodeignore

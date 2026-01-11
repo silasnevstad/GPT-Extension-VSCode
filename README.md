@@ -1,26 +1,22 @@
 # GPT
 
-Use OpenAI’s models inside Visual Studio Code
+Use OpenAI, Anthropic, or Gemini models inside Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
 <div id="models"></div>
 
 ## Supported Models
-- **o3-mini**
-- **o1**
-- **o1-mini**
-- **GPT-4o**
-- **GPT-4o-mini**
-- **GPT-4-Turbo**
-- **GPT-3.5-Turbo**
+Models are dynamically discovered (via **GPT: Change Model** → **Refresh model list (online)**).
+
+You can always use **“Custom model id…”** to enter any model id manually.
 
 <br>
 <div id="getting-started"></div>
 
 ## 🚀 Getting Started
 
-1. [Set your API key](#set-your-api-key).
+1. [Set your API key](#manage-api-keys).
 2. Highlight a question or code snippet in the editor (or use the entire file).
 3. Open the Command Palette (`Cmd + Shift + P` on macOS, `Ctrl + Shift + P` on Windows/Linux).
 4. Type **"Ask GPT"**.
@@ -32,14 +28,35 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 
 ## 📝 Key Commands & Tools
 
-### 🛠 **GPT: Set API Key** <div id="set-your-api-key"></div>
-1. Get an API key from [OpenAI's website](https://platform.openai.com).
-  - Go to **Dashboard** → **API Keys**.
-  - Click **"Create new secret key"** and copy it.
-2. Press `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P` (Windows/Linux).
-3. Search for **"GPT: Set API Key"** and paste your key.
+### 🛠 **GPT: Manage API Keys** <div id="manage-api-keys"></div>
 
-> API keys are stored in VS Code SecretStorage (stored securely). Legacy keys previously stored in globalState are migrated automatically when VS Code Secret Storage is available.
+Manage all provider API keys in one place.
+
+1. Open the Command Palette  
+   (`Cmd + Shift + P` on macOS, `Ctrl + Shift + P` on Windows/Linux)
+2. Run **GPT: Manage API Keys**
+3. Select a provider:
+   - OpenAI
+   - Anthropic
+   - Gemini
+4. Choose an action:
+   - **Set / Update API key**
+   - **Remove API key**
+
+Each provider shows its current status (**Configured** or **Not set**).
+
+> API keys are stored securely using VS Code SecretStorage.
+
+> Legacy OpenAI keys previously stored in globalState are migrated automatically when SecretStorage is available.
+
+---
+
+### 🧩 Providers (OpenAI / Anthropic / Gemini)
+
+- Default provider is **OpenAI**
+- Switch provider: **GPT: Change Provider**
+- API keys are managed centrally via **GPT: Manage API Keys**
+- `.gpt-instruction` is applied as a system instruction for all providers.
 
 ---
 
@@ -84,7 +101,8 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 ### 🛠 **GPT: Change Model**
 - **Command**: `GPT: Change Model`
 - **Usage**:
-  - Pick from available models (`o1`, `GPT-4-Turbo`, etc.).
+  - Pick from available models.
+  - Use **Refresh model list (online)** to fetch the latest models from your provider.
   - Subsequent requests use the chosen model.
 
 ---
@@ -129,7 +147,7 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 
 ---
 
-### 🛠 **GPT: Change Output Mode**
+### 🛠 **GPT: Change Output Mode** <div id="gpt-change-output-mode"></div>
 - **Command**: `GPT: Change Output Mode`
 - **Usage**:
   - Toggles between **"Replace Selection"** or **"New File"**.
@@ -153,7 +171,7 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 - **Flexible Conversation Context**: Choose no context, the last N messages, or the entire session for each query.
 - **Error & Rate Limit Handling**: Clear messages for invalid keys, missing model, or rate limits.
 - **Cross‑Language Support**: Works for code or text in any language recognized by VSCode.
-- **API Key Storage**: Stores your API key in VS Code SecretStorage (stored securely) and migrates legacy keys previously stored in globalState.
+- **API Key Storage**: Stores provider API keys securely in VS Code SecretStorage and migrates legacy OpenAI keys previously stored in globalState.
 - **Project Instructions**: Place a `.gpt-instruction` file in your workspace to automatically prefix each query with custom guidance.
 
 ### `.gpt-instruction`
@@ -223,7 +241,7 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 
 ## ⚙️ Troubleshooting
 
-- **Invalid Key**: Double‑check at [OpenAI’s API Keys](https://platform.openai.com/account/api-keys).
+- **Invalid or Missing API Key**: Run **GPT: Manage API Keys** and verify the key for the active provider.
 - **Rate Limits**: If usage is too high, wait or check your [OpenAI usage dashboard](https://platform.openai.com/account/usage).
 - **Debugging**: Toggle **"GPT: Change Debug Mode"** to see request logs in **GPT Debug**.
 
