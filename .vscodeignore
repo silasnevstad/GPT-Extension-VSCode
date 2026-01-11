@@ -1,0 +1,29 @@
+# Source control / CI
+.git/**
+.github/**
+.vscode/**
+.idea/**
+extension.js
+
+# Tests
+test/**
+
+# Dependencies
+node_modules/**
+
+# Tooling / config
+.eslint*
+eslint.config.js
+jsconfig.json
+tsconfig.json
+*.log
+
+# Local / OS noise
+.DS_Store
+Thumbs.db
+
+# Repo-only media/docs
+demo.mov
+demo2.mov
+demo3.mov
+vsc-extension-quickstart.md

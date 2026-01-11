@@ -1,40 +1,20 @@
 const vscode = require('vscode');
-const axios = require('axios');
-const { ProjectInstructionManager } = require('./projectInstructionManager');
+const {ProjectInstructionManager} = require('./projectInstructionManager');
+const {LLMRouter} = require('./src/llm/router');
+const {toUserMessage, sanitizeForDebug, isCancellationError, isLLMError, LLMError} = require('./src/llm/errors');
+const {staticModels, buildPickerItems, getKnownMaxOutputTokens} = require('./src/llm/modelRegistry');
+const {getModels} = require('./src/llm/modelDiscovery');
 
+let extensionContext = null;
 // --- Global State Variables ---
-let privateKey = null;          // OpenAI API Key
 let outputReplace = false;      // If true, replace text selection; if false, open new doc
-let gptModel = "gpt-4o";        // Default model
 let debugMode = false;
+let llmRouter = null;
 
 // Conversation context settings
 let contextMode = 'none';       // 'none' | 'lastN' | 'full'
 let contextLength = 3;          // Used if contextMode === 'lastN'
 
-// Max tokens per model
-const modelMaxTokens = {
-    "o3-mini": 100000,
-    "o1": 100000,
-    "o1-mini": 65536,
-    "gpt-4o": 16384,
-    "gpt-4o-mini": 16384,
-    "gpt-4-turbo": 4096,
-    "gpt-3.5-turbo": 4096
-};
-
-// Map display names to actual model IDs
-const modelMap = {
-    "o3-mini": "o3-mini",
-    "o1": "o1",
-    "o1-mini": "o1-mini",
-    "GPT-4o": "gpt-4o",
-    "GPT-4o-mini": "gpt-4o-mini",
-    "GPT-4-Turbo": "gpt-4-turbo",
-    "GPT-3.5-Turbo": "gpt-3.5-turbo"
-};
-
-let maxTokens = modelMaxTokens[gptModel];
 let temperature = null;  // If not set, API uses default
 let topP = 1;            // Default top_p
 
@@ -65,137 +45,119 @@ function warnSecretStorageOnce() {
     );
 }
 
+async function manageApiKeysHandler() {
+    if (!llmRouter) {
+        vscode.window.showErrorMessage('GPT extension is not initialized yet.');
+        return;
+    }
+
+    const providers = [
+        {id: 'openai', label: 'OpenAI'},
+        {id: 'anthropic', label: 'Anthropic'},
+        {id: 'gemini', label: 'Gemini'}
+    ];
+
+    const items = [];
+    for (const p of providers) {
+        const key = await llmRouter.getApiKey(p.id);
+        items.push({
+            label: p.label,
+            description: key ? 'Configured' : 'Not set',
+            providerId: p.id
+        });
+    }
+
+    const pickedProvider = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select a provider to manage its API key'
+    });
+
+    if (!pickedProvider) return;
+
+    const providerId = pickedProvider.providerId;
+    const providerLabel = pickedProvider.label;
+    const hasKey = Boolean(await llmRouter.getApiKey(providerId));
+
+    const action = await vscode.window.showQuickPick(
+        [
+            {label: 'Set / Update API key', value: 'set'},
+            ...(hasKey ? [{label: 'Remove API key', value: 'remove'}] : []),
+            {label: 'Cancel', value: 'cancel'}
+        ],
+        {placeHolder: `${providerLabel} API key`}
+    );
+
+    if (!action || action.value === 'cancel') return;
+
+    if (action.value === 'set') {
+        const newKey = await vscode.window.showInputBox({
+            prompt: `Enter your ${providerLabel} API key`,
+            password: true
+        });
+        if (!newKey || !newKey.trim()) return;
+
+        try {
+            const {persisted} = await llmRouter.setApiKey(providerId, newKey.trim());
+            vscode.window.showInformationMessage(
+                persisted
+                    ? `${providerLabel} API key updated.`
+                    : `${providerLabel} API key set for this session only (Secret Storage unavailable).`
+            );
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to update ${providerLabel} API key.`);
+            logDebug('Manage API keys: set failed', safeErrorDetails(err));
+        }
+        return;
+    }
+
+    if (action.value === 'remove') {
+        try {
+            const {persisted} = await llmRouter.removeApiKey(providerId);
+            vscode.window.showInformationMessage(
+                persisted
+                    ? `${providerLabel} API key removed.`
+                    : `${providerLabel} API key removed for this session only (Secret Storage unavailable).`
+            );
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to remove ${providerLabel} API key.`);
+            logDebug('Manage API keys: remove failed', safeErrorDetails(err));
+        }
+    }
+}
+
+
 // Debug logger
 function logDebug(message, details = {}) {
     if (!debugMode || !outputChannel) return;
     const timestamp = new Date().toISOString();
     outputChannel.appendLine(`[${timestamp}] ${message}`);
     if (details && Object.keys(details).length > 0) {
-        outputChannel.appendLine(JSON.stringify(details, null, 2));
+        // Never log secrets or prompt contents
+        outputChannel.appendLine(JSON.stringify(sanitizeForDebug(details), null, 2));
     }
     outputChannel.appendLine('---');
 }
 
 // Format chat history as Markdown
 function formatChatHistory() {
+    const providerLabel = (p) => (p === 'anthropic' ? 'Anthropic' : p === 'gemini' ? 'Gemini' : 'OpenAI');
     return chatHistory
         .map(msg => {
             const timeStr = new Date(msg.timestamp).toLocaleTimeString();
             const role = msg.role === 'user' ? 'User' : 'Assistant';
-            return `${'='.repeat(10)}\n**${role} (${msg.model}) [${timeStr}]:**\n${msg.content}\n${'='.repeat(10)}\n`;
+            const provider = providerLabel(typeof msg.provider === 'string' ? msg.provider : 'openai');
+            const model = typeof msg.model === 'string' ? msg.model : 'unknown-model';
+            return `${'='.repeat(10)}\n**${role} (${provider}/${model}) [${timeStr}]:**\n${msg.content}\n${'='.repeat(10)}\n`;
         })
         .join('\n');
 }
 
-// Build messages array from chat history based on contextMode
-function buildMessages(userPrompt, instruction) {
-    let relevantHistory = [];
-
-    switch (contextMode) {
-        case 'full':
-            // All messages
-            relevantHistory = chatHistory;
-            break;
-        case 'lastN':
-            // Last N messages
-            relevantHistory = chatHistory.slice(-contextLength);
-            break;
-        case 'none':
-        default:
-            // No context
-            relevantHistory = [];
-            break;
-    }
-
-    const messages = [];
-    if (instruction) {
-        messages.push({ role: 'system', content: instruction });
-    }
-    messages.push(...relevantHistory.map(msg => ({
-        role: msg.role,
-        content: msg.content
-    })));
-    // Add the new user message
-    messages.push({ role: 'user', content: userPrompt });
-    return messages;
-}
-
-// Send GPT request (multi-turn aware via buildMessages)
-async function sendGPTRequest(userPrompt, instruction, options = {}) {
-    if (!privateKey) {
-        vscode.window.showErrorMessage('Please set your API key first (GPT: Set API Key).');
-        logDebug('No API key set');
-        return null;
-    }
-
-    const url = 'https://api.openai.com/v1/chat/completions';
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${privateKey}`
-    };
-
-    const data = {
-        model: gptModel,
-        messages: buildMessages(userPrompt, instruction),
-        max_completion_tokens: maxTokens,
-        temperature: temperature !== null ? temperature : undefined,
-        top_p: topP
-    };
-
-    logDebug('Sending GPT request', { gptModel, maxTokens, temperature, topP, contextMode, contextLength, hasProjectInstruction: Boolean(instruction) });
-
-    try {
-        const response = await axios.post(url, data, {
-            headers,
-            timeout: 120000,
-            signal: options.signal
-        });
-
-        if (options.signal?.aborted === true) return null;
-
-        if (response.status !== 200) {
-            vscode.window.showErrorMessage(`Error: Received status ${response.status}`);
-            return null;
-        }
-        return response?.data?.choices?.[0]?.message?.content ?? null;
-    } catch (err) {
-        // Cancellation: silent based on AbortSignal first.
-        if (options.signal?.aborted === true) {
-            logDebug('GPT request canceled');
-            return null;
-        }
-
-        // Cancellation: avoid noisy UI errors.
-        if (err && (err.code === 'ERR_CANCELED' || err.name === 'CanceledError')) {
-            logDebug('GPT request canceled');
-            return null;
-        }
-
-        if (err.response) {
-            const { status, data: errorData } = err.response;
-            if (status === 404) {
-                vscode.window.showErrorMessage('Model or endpoint not found. Check your model and API key.');
-            } else if (status === 429) {
-                vscode.window.showWarningMessage('Request limit reached. Please wait before trying again.');
-            } else if (status === 401 || status === 403) {
-                vscode.window.showErrorMessage('Invalid or unauthorized API key. Please check your key.');
-            } else {
-                vscode.window.showErrorMessage(`Error: ${err.message}`);
-            }
-            logDebug('GPT API error', { status, errorData });
-        } else if (err.request) {
-            vscode.window.showErrorMessage('No response received from GPT API.');
-            logDebug('No response from GPT API', safeErrorDetails(err));
-        } else {
-            vscode.window.showErrorMessage(`Unexpected error: ${err.message}`);
-            logDebug('Unexpected error', safeErrorDetails(err));
-        }
-        return null;
-    }
-}
-
 // Ask GPT command (with selection or entire file)
 async function askGPTHandler(useWholeFile = false) {
+    if (!llmRouter) {
+        vscode.window.showErrorMessage('GPT extension is not initialized yet.');
+        return;
+    }
+
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showWarningMessage('No active editor found.');
@@ -228,26 +190,107 @@ async function askGPTHandler(useWholeFile = false) {
 
             if (token.isCancellationRequested) return;
 
-            const response = await sendGPTRequest(queryText, instruction, { signal: abortController.signal });
+            let result;
+            try {
+                result = await llmRouter.send({
+                    userPrompt: queryText,
+                    system: instruction,
+                    history: chatHistory,
+                    contextMode,
+                    contextLength,
+                    temperature,
+                    topP,
+                    signal: abortController.signal,
+                    debug: debugMode
+                });
+            } catch (err) {
+                if (token.isCancellationRequested || abortController.signal.aborted || isCancellationError(err)) {
+                    logDebug('LLM request canceled');
+                    return;
+                }
+
+                const providerId = isLLMError(err) && typeof err.provider === 'string'
+                    ? err.provider
+                    : llmRouter.getActiveProviderId();
+
+                const model = llmRouter.getModel(providerId);
+
+                const msg = toUserMessage(
+                    isLLMError(err) ? err : new LLMError({
+                        kind: 'Unknown',
+                        provider: providerId,
+                        message: 'Unknown error.'
+                    }),
+                    {
+                        providerLabel: llmRouter.getProviderDisplayName(providerId),
+                        model
+                    }
+                );
+
+                if (isLLMError(err) && err.kind === 'NotFoundModel') {
+                    const providerLabel = llmRouter.getProviderDisplayName(providerId);
+                    const apiKey = await llmRouter.getApiKey(providerId);
+                    if (apiKey && extensionContext) {
+                        // one background refresh, no await
+                        getModels({providerId, context: extensionContext, apiKey, force: true}).catch(() => {});
+                    }
+                    const action = await vscode.window.showWarningMessage(
+                        `Model not available for ${providerLabel} (${model}).`,
+                        'Open GPT: Change Model',
+                        'Cancel'
+                    );
+                    if (action === 'Open GPT: Change Model') {
+                        vscode.commands.executeCommand('gpthelper.changeModel');
+                    }
+                    return;
+                } else if (isLLMError(err) && err.kind === 'RateLimit') {
+                    vscode.window.showWarningMessage(msg);
+                } else {
+                    vscode.window.showErrorMessage(msg);
+                }
+
+                logDebug('LLM request failed', {
+                    provider: providerId,
+                    model,
+                    kind: isLLMError(err) ? err.kind : 'Unknown',
+                    status: isLLMError(err) ? err.status : undefined,
+                    providerCode: isLLMError(err) ? err.providerCode : undefined,
+                    requestId: isLLMError(err) ? err.requestId : undefined
+                });
+                return;
+            }
             const duration = Date.now() - startTime;
-            logDebug('GPT response time', { durationMs: duration });
+            logDebug('GPT response time', {durationMs: duration});
 
             // If the user canceled after the request completed, do nothing.
             if (token.isCancellationRequested || abortController.signal.aborted) return;
 
-            if (response) {
+            if (result?.text) {
                 // Save to chat history
-                chatHistory.push({ role: 'user', content: queryText, model: gptModel, timestamp: Date.now() });
-                chatHistory.push({ role: 'assistant', content: response, model: gptModel, timestamp: Date.now() });
+                const now = Date.now();
+                chatHistory.push({
+                    role: 'user',
+                    content: queryText,
+                    provider: result.provider,
+                    model: result.model,
+                    timestamp: now
+                });
+                chatHistory.push({
+                    role: 'assistant',
+                    content: result.text,
+                    provider: result.provider,
+                    model: result.model,
+                    timestamp: now
+                });
 
                 if (outputReplace && !useWholeFile) {
                     // Replace selected text
                     await editor.edit(editBuilder => {
-                        editBuilder.replace(editor.selection, response);
+                        editBuilder.replace(editor.selection, result.text);
                     });
                 } else {
                     // Open response in a new document
-                    const doc = await vscode.workspace.openTextDocument({ content: response });
+                    const doc = await vscode.workspace.openTextDocument({content: result.text});
                     await vscode.window.showTextDocument(doc);
                 }
             }
@@ -268,7 +311,7 @@ async function exportChatHistory() {
 
     const uri = await vscode.window.showSaveDialog({
         defaultUri,
-        filters: { 'Markdown': ['md'] },
+        filters: {'Markdown': ['md']},
         saveLabel: 'Export Chat History'
     });
     if (!uri) return;
@@ -287,16 +330,16 @@ async function exportChatHistory() {
 // Change context mode (none, lastN, full)
 async function changeContextMode() {
     const pick = await vscode.window.showQuickPick([
-        { label: 'No Context', value: 'none' },
-        { label: 'Last N Messages', value: 'lastN' },
-        { label: 'Full', value: 'full' }
-    ], { placeHolder: 'Select a conversation context mode' });
+        {label: 'No Context', value: 'none'},
+        {label: 'Last N Messages', value: 'lastN'},
+        {label: 'Full', value: 'full'}
+    ], {placeHolder: 'Select a conversation context mode'});
 
     if (!pick) return;
     contextMode = pick.value;
 
     vscode.window.showInformationMessage(`Context mode set to: ${pick.label}`);
-    logDebug('Context mode changed', { contextMode });
+    logDebug('Context mode changed', {contextMode});
 }
 
 // Set how many messages are used if in 'lastN' mode
@@ -313,38 +356,7 @@ async function setContextLength() {
     }
     contextLength = parsed;
     vscode.window.showInformationMessage(`Context length set to ${contextLength}`);
-    logDebug('Context length changed', { contextLength });
-}
-
-async function loadApiKey(context) {
-    // Prefer SecretStorage; migrate legacy globalState key if present.
-    let secret;
-    try {
-        secret = await context.secrets.get('openaiApiKey');
-    } catch (err) {
-        warnSecretStorageOnce();
-        logDebug('SecretStorage: get failed', safeErrorDetails(err));
-    }
-    if (typeof secret === 'string' && secret.trim()) {
-        privateKey = secret;
-        return;
-    }
-
-    const legacy = context.globalState.get('openaiApiKey');
-    if (typeof legacy === 'string' && legacy.trim()) {
-        privateKey = legacy;
-        try {
-            await context.secrets.store('openaiApiKey', legacy);
-            try {
-                await context.globalState.update('openaiApiKey', undefined);
-            } catch (err) {
-                logDebug('Legacy key cleanup failed', safeErrorDetails(err));
-            }
-        } catch (err) {
-            warnSecretStorageOnce();
-            logDebug('API key migration failed', safeErrorDetails(err));
-        }
-    }
+    logDebug('Context length changed', {contextLength});
 }
 
 // --- Activation & Deactivation ---
@@ -352,7 +364,15 @@ async function activate(context) {
     outputChannel = vscode.window.createOutputChannel("GPT Debug");
     context.subscriptions.push(outputChannel);
 
-    await loadApiKey(context);
+    extensionContext = context;
+
+    llmRouter = new LLMRouter({
+        vscode,
+        context,
+        logDebug,
+        warnSecretStorageOnce,
+        warnUser: (msg) => vscode.window.showWarningMessage(msg)
+    });
 
     // Initialize .gpt-instruction manager (multi-root aware)
     instructionManager = new ProjectInstructionManager({
@@ -378,27 +398,130 @@ async function activate(context) {
             debugMode = !debugMode;
             vscode.window.showInformationMessage(`Debug mode is now ${debugMode ? "On" : "Off"}.`);
             if (debugMode) outputChannel.show(true);
-            logDebug('Debug mode toggled', { debugMode });
+            logDebug('Debug mode toggled', {debugMode});
         }),
 
         // Output mode toggle
         vscode.commands.registerCommand('gpthelper.changeOutputMode', () => {
             outputReplace = !outputReplace;
             vscode.window.showInformationMessage(`Output mode: ${outputReplace ? "Replace Selection" : "New File"}.`);
-            logDebug('Output mode toggled', { outputReplace });
+            logDebug('Output mode toggled', {outputReplace});
+        }),
+
+        // Change provider
+        vscode.commands.registerCommand('gpthelper.changeProvider', async () => {
+            const currentProvider = llmRouter.getActiveProviderId();
+
+            const items = [
+                {label: 'OpenAI', value: 'openai'},
+                {label: 'Anthropic', value: 'anthropic'},
+                {label: 'Gemini', value: 'gemini'}
+            ].map(p => ({
+                label: p.value === currentProvider ? `$(check) ${p.label}` : p.label,
+                value: p.value,
+                picked: p.value === currentProvider
+            }));
+
+            const pick = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select an LLM provider'
+            });
+
+            if (!pick) return;
+
+            await vscode.workspace
+                .getConfiguration('gpthelper')
+                .update('provider', pick.value, vscode.ConfigurationTarget.Global);
+
+            const key = await llmRouter.getApiKey(pick.value);
+            if (!key) {
+                const action = await vscode.window.showWarningMessage(
+                    `${pick.label.replace('$(check) ', '')} is selected but no API key is configured. Set one now?`,
+                    'Set API Key',
+                    'Cancel'
+                );
+                if (action === 'Set API Key') {
+                    vscode.commands.executeCommand('gpthelper.manageApiKeys');
+                }
+            }
+
+            vscode.window.showInformationMessage(
+                `Provider set to: ${pick.label.replace('$(check) ', '')}`
+            );
+            logDebug('Provider changed', {provider: pick.value});
         }),
 
         // Change model
         vscode.commands.registerCommand('gpthelper.changeModel', async () => {
-            const pick = await vscode.window.showQuickPick(
-                Object.keys(modelMap).map(label => ({ label })),
-                { placeHolder: "Select a model" }
-            );
+            const providerId = llmRouter.getActiveProviderId();
+            const providerLabel = llmRouter.getProviderDisplayName(providerId);
+
+            const apiKey = await llmRouter.getApiKey(providerId);
+            let entry = await getModels({
+                providerId,
+                context,
+                apiKey,
+                staticFallback: staticModels(providerId)
+            });
+
+            const models = (entry?.items?.length ? entry.items : staticModels(providerId))
+                .map(m => ({label: m.label, id: m.id, detail: m.detail}));
+
+            const currentModel = llmRouter.getModel(providerId);
+
+            const items = buildPickerItems(models).map(m => {
+                const isCurrent = m.id === currentModel;
+
+                return {
+                    label: isCurrent ? `$(check) ${m.label}` : m.label,
+                    description:
+                        m.id && !m.id.startsWith('__')
+                            ? (isCurrent ? `${m.id} (current)` : m.id)
+                            : '',
+                    detail: m.detail,
+                    picked: isCurrent,
+                    _modelId: m.id
+                };
+            });
+
+            const pick = await vscode.window.showQuickPick(items, {
+                placeHolder: `Select a model (${providerLabel})`
+            });
             if (!pick) return;
-            gptModel = modelMap[pick.label];
-            maxTokens = modelMaxTokens[gptModel];
-            vscode.window.showInformationMessage(`Model changed to ${gptModel} (max tokens: ${maxTokens}).`);
-            logDebug('Model changed', { gptModel, maxTokens });
+
+            /** @type {string} */
+            let modelId = pick._modelId;
+            if (modelId === '__refresh__') {
+                const controller = new AbortController();
+                await vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Refreshing models…',
+                    cancellable: true
+                }, async (_p, token) => {
+                    token.onCancellationRequested(() => controller.abort());
+                    await getModels({
+                        providerId,
+                        context,
+                        apiKey,
+                        force: true,
+                        signal: controller.signal,
+                        staticFallback: staticModels(providerId)
+                    });
+                });
+                return vscode.commands.executeCommand('gpthelper.changeModel');
+            }
+            if (modelId === '__custom__') {
+                const current = llmRouter.getModel(providerId);
+                const custom = await vscode.window.showInputBox({
+                    prompt: `Enter custom ${providerLabel} model id`,
+                    value: current
+                });
+                if (!custom || !custom.trim()) return;
+                modelId = custom.trim();
+            }
+
+            await llmRouter.setModel(providerId, modelId);
+            vscode.window.showInformationMessage(`Model changed to ${modelId} (${providerLabel}).`);
+            logDebug('Model changed', {provider: providerId, model: modelId});
         }),
 
         // Change temperature
@@ -414,7 +537,7 @@ async function activate(context) {
             }
             temperature = val;
             vscode.window.showInformationMessage(`Temperature set to ${val}.`);
-            logDebug('Temperature changed', { temperature });
+            logDebug('Temperature changed', {temperature});
         }),
 
         // Change top_p
@@ -430,58 +553,39 @@ async function activate(context) {
             }
             topP = val;
             vscode.window.showInformationMessage(`top_p set to ${val}.`);
-            logDebug('top_p changed', { topP });
+            logDebug('top_p changed', {topP});
         }),
 
-        // Set API key
-        vscode.commands.registerCommand('gpthelper.setKey', async () => {
-            const newKey = await vscode.window.showInputBox({
-                prompt: "Enter your OpenAI API key",
-                password: true
-            });
-            if (!newKey || !newKey.trim()) return;
+        // Unified API key manager
+        vscode.commands.registerCommand('gpthelper.manageApiKeys', manageApiKeysHandler),
 
-            privateKey = newKey.trim();
-            let stored = false;
-            try {
-                await context.secrets.store('openaiApiKey', privateKey);
-                stored = true;
-            } catch (err) {
-                warnSecretStorageOnce();
-                logDebug('SecretStorage: store failed', safeErrorDetails(err));
-            }
-            if (stored) {
-                try {
-                    await context.globalState.update('openaiApiKey', undefined); // remove legacy if present
-                } catch (err) {
-                    logDebug('Legacy key cleanup failed', safeErrorDetails(err));
-                }
-                vscode.window.showInformationMessage('API key set successfully!');
-                logDebug('API key set');
-                return;
-            }
-
-            vscode.window.showInformationMessage('API key set for this session (not saved).');
+        // Legacy command: redirect only
+        vscode.commands.registerCommand('gpthelper.setKey', () => {
+            vscode.commands.executeCommand('gpthelper.manageApiKeys');
         }),
 
-        // Change request token limit
+        // Change max output tokens (0 => default/max)
         vscode.commands.registerCommand('gpthelper.changeLimit', async () => {
-            if (!privateKey) {
-                vscode.window.showErrorMessage('Set your API key before changing the token limit.');
-                return;
-            }
+            const providerId = llmRouter.getActiveProviderId();
+            const model = llmRouter.getModel(providerId);
+            const knownMax = getKnownMaxOutputTokens(providerId, model);
+            const current = llmRouter.getMaxOutputTokensSetting(providerId);
+
             const limitPrompt = await vscode.window.showInputBox({
-                prompt: `Enter new token limit (0 - ${modelMaxTokens[gptModel]})`
+                prompt: knownMax
+                    ? `Enter max output tokens (0 = default/max). Current: ${current}. Known max for ${model}: ${knownMax}`
+                    : `Enter max output tokens (0 = default). Current: ${current}`,
+                value: String(current)
             });
             if (!limitPrompt) return;
             const val = parseInt(limitPrompt, 10);
-            if (isNaN(val) || val < 0 || val > modelMaxTokens[gptModel]) {
-                vscode.window.showErrorMessage(`Token limit must be between 0 and ${modelMaxTokens[gptModel]}.`);
+            if (isNaN(val) || val < 0) {
+                vscode.window.showErrorMessage('Max output tokens must be a non-negative integer (0 = default/max).');
                 return;
             }
-            maxTokens = val;
-            vscode.window.showInformationMessage(`Token limit set to ${val}.`);
-            logDebug('Token limit changed', { maxTokens });
+            await llmRouter.setMaxOutputTokens(val);
+            vscode.window.showInformationMessage(`Max output tokens set to ${val === 0 ? 'default/max' : val}.`);
+            logDebug('Max output tokens changed', {maxOutputTokens: val});
         }),
 
         // Context Mode
@@ -501,7 +605,7 @@ async function activate(context) {
                 language: 'markdown'
             });
             await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-            logDebug('Displayed chat history', { length: chatHistory.length });
+            logDebug('Displayed chat history', {length: chatHistory.length});
         }),
 
         // Clear chat history
@@ -515,6 +619,7 @@ async function activate(context) {
     commands.forEach(cmd => context.subscriptions.push(cmd));
 }
 
-function deactivate() {}
+function deactivate() {
+}
 
-module.exports = { activate, deactivate };
+module.exports = {activate, deactivate};
