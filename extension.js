@@ -12,11 +12,11 @@ let debugMode = false;
 let llmRouter = null;
 
 // Conversation context settings
-let contextMode = 'none';       // 'none' | 'lastN' | 'full'
-let contextLength = 3;          // Used if contextMode === 'lastN'
+let contextMode = 'none';    // 'none' | 'lastN' | 'full'
+let contextLength = 3;      // Used if contextMode === 'lastN'
 
-let temperature = null;  // If not set, API uses default
-let topP = 1;            // Default top_p
+let temperature = null;   // If not set, API uses default
+let topP = null;          // If not set, API uses default
 
 // Debug logger (initialized in activate)
 let outputChannel;
@@ -232,7 +232,8 @@ async function askGPTHandler(useWholeFile = false) {
                     const apiKey = await llmRouter.getApiKey(providerId);
                     if (apiKey && extensionContext) {
                         // one background refresh, no await
-                        getModels({providerId, context: extensionContext, apiKey, force: true}).catch(() => {});
+                        getModels({providerId, context: extensionContext, apiKey, force: true}).catch(() => {
+                        });
                     }
                     const action = await vscode.window.showWarningMessage(
                         `Model not available for ${providerLabel} (${model}).`,
@@ -526,34 +527,102 @@ async function activate(context) {
 
         // Change temperature
         vscode.commands.registerCommand('gpthelper.changeTemperature', async () => {
-            const newTemp = await vscode.window.showInputBox({
-                prompt: "Enter temperature (0.0 - 1.0)"
+            const providerId = llmRouter.getActiveProviderId();
+
+            const current = (typeof temperature === 'number') ? temperature : null;
+
+            const action = await vscode.window.showQuickPick(
+                [
+                    {label: `Set temperature…${current === null ? '' : ` (current: ${current})`}`, value: 'set'},
+                    {label: 'Use provider default (unset)', value: 'unset'}
+                ],
+                {placeHolder: 'Temperature setting'}
+            );
+            if (!action) return;
+
+            if (action.value === 'unset') {
+                temperature = null;
+                vscode.window.showInformationMessage('Temperature unset (provider default).');
+                logDebug('Temperature changed', {temperature: null});
+                return;
+            }
+
+            const raw = await vscode.window.showInputBox({
+                prompt: 'Enter temperature (0.0 - 1.0)',
+                value: current === null ? undefined : String(current)
             });
-            if (!newTemp) return;
-            const val = parseFloat(newTemp);
-            if (isNaN(val) || val < 0 || val > 1) {
+            if (!raw) return;
+
+            const val = parseFloat(raw);
+            if (!Number.isFinite(val) || val < 0 || val > 1) {
                 vscode.window.showErrorMessage('Temperature must be between 0.0 and 1.0.');
                 return;
             }
+
+            // Anthropic constraint UX
+            if (providerId === 'anthropic' && typeof topP === 'number') {
+                const choice = await vscode.window.showWarningMessage(
+                    'Anthropic does not support using both temperature and top-p. Setting temperature will unset top-p.',
+                    'Proceed',
+                    'Cancel'
+                );
+                if (choice !== 'Proceed') return;
+                topP = null;
+            }
+
             temperature = val;
             vscode.window.showInformationMessage(`Temperature set to ${val}.`);
-            logDebug('Temperature changed', {temperature});
+            logDebug('Temperature changed', {temperature: val});
         }),
 
         // Change top_p
         vscode.commands.registerCommand('gpthelper.changeTopP', async () => {
-            const newVal = await vscode.window.showInputBox({
-                prompt: "Enter top_p (0.0 - 1.0)"
+            const providerId = llmRouter.getActiveProviderId();
+
+            const current = (typeof topP === 'number') ? topP : null;
+
+            const action = await vscode.window.showQuickPick(
+                [
+                    {label: `Set top_p…${current === null ? '' : ` (current: ${current})`}`, value: 'set'},
+                    {label: 'Use provider default (unset)', value: 'unset'}
+                ],
+                {placeHolder: 'Top_p setting'}
+            );
+            if (!action) return;
+
+            if (action.value === 'unset') {
+                topP = null;
+                vscode.window.showInformationMessage('top_p unset (provider default).');
+                logDebug('top_p changed', {topP: null});
+                return;
+            }
+
+            const raw = await vscode.window.showInputBox({
+                prompt: 'Enter top_p (0.0 - 1.0)',
+                value: current === null ? undefined : String(current)
             });
-            if (!newVal) return;
-            const val = parseFloat(newVal);
-            if (isNaN(val) || val < 0 || val > 1) {
+            if (!raw) return;
+
+            const val = parseFloat(raw);
+            if (!Number.isFinite(val) || val < 0 || val > 1) {
                 vscode.window.showErrorMessage('top_p must be between 0.0 and 1.0.');
                 return;
             }
+
+            // Anthropic constraint UX
+            if (providerId === 'anthropic' && typeof temperature === 'number') {
+                const choice = await vscode.window.showWarningMessage(
+                    'Anthropic does not support using both temperature and top-p. Setting top-p will unset temperature.',
+                    'Proceed',
+                    'Cancel'
+                );
+                if (choice !== 'Proceed') return;
+                temperature = null;
+            }
+
             topP = val;
             vscode.window.showInformationMessage(`top_p set to ${val}.`);
-            logDebug('top_p changed', {topP});
+            logDebug('top_p changed', {topP: val});
         }),
 
         // Unified API key manager

@@ -521,6 +521,30 @@ class LLMRouter {
             this._warnUser('Input was truncated to fit safety limits (large selection/file or extensive history).');
         }
 
+        // Warn if Anthropic is in an invalid sampling state (both temperature and top-p set)
+        if (
+            providerId === 'anthropic' &&
+            typeof args.temperature === 'number' &&
+            typeof args.topP === 'number'
+        ) {
+            this._warnUser(
+                'Anthropic models do not support using both temperature and top-p. ' +
+                'This request will use temperature and ignore top-p.'
+            );
+        }
+
+        // Normalize sampling params
+        let temperature = typeof args.temperature === 'number' ? args.temperature : undefined;
+        let topP = typeof args.topP === 'number' ? args.topP : undefined;
+
+        if (providerId === 'anthropic') {
+            if (typeof temperature === 'number') {
+                topP = undefined;
+            } else if (typeof topP === 'number') {
+                temperature = undefined;
+            }
+        }
+
         this._logDebug('LLM request', sanitizeForDebug({
             provider: providerId,
             model,
@@ -530,8 +554,10 @@ class LLMRouter {
             maxOutputTokensSetting: maxSetting,
             resolvedMaxOutputTokens: maxOutputTokens,
             clampedFrom,
-            temperature: args.temperature ?? undefined,
-            topP: args.topP ?? undefined,
+            temperatureSent: temperature,
+            topPSent: topP,
+            temperatureRaw: args.temperature ?? undefined,
+            topPRaw: args.topP ?? undefined,
             instructionChars: preCapCounts.systemChars,
             historyChars: preCapCounts.messagesChars - (typeof args.userPrompt === 'string' ? args.userPrompt.length : 0),
             userChars: typeof args.userPrompt === 'string' ? args.userPrompt.length : 0,
@@ -549,8 +575,8 @@ class LLMRouter {
                 system: systemText,
                 messages: msgs,
                 maxOutputTokens,
-                temperature: typeof args.temperature === 'number' ? args.temperature : undefined,
-                topP: typeof args.topP === 'number' ? args.topP : undefined,
+                temperature,
+                topP,
                 signal: args.signal,
                 debug: args.debug
             });

@@ -4,7 +4,7 @@ const { LLMError, isCancellationError, parseRetryAfterSec, extractRequestId } = 
 
 // Anthropic Messages API: POST https://api.anthropic.com/v1/messages
 // Headers: x-api-key, anthropic-version: 2023-06-01, content-type: application/json
-// System prompt is top-level `system` (NOT a system role message). (Anthropic docs)
+// System prompt is top-level `system` (NOT a system role message).
 const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 
@@ -128,7 +128,7 @@ const provider = {
         const system = typeof args.system === 'string' && args.system.trim() ? args.system : undefined;
 
         // max_tokens is required by Anthropic Messages API.
-        // If router passes 0/undefined, fall back to a safe default (documented in router). (Anthropic docs)
+        // If router passes 0/undefined, fall back to a safe default (documented in router)
         const maxTokens = typeof args.maxOutputTokens === 'number' && args.maxOutputTokens > 0
             ? args.maxOutputTokens
             : 1024;
@@ -138,8 +138,10 @@ const provider = {
             system,
             messages: args.messages.map(m => ({ role: m.role, content: m.content })),
             max_tokens: maxTokens,
-            temperature: typeof args.temperature === 'number' ? args.temperature : undefined,
-            top_p: typeof args.topP === 'number' ? args.topP : undefined
+            // Provide either temperature or top_p (not both) (prefer temperature if both given)
+            ...(typeof args.temperature === 'number'
+                ? { temperature: args.temperature }
+                : (typeof args.topP === 'number' ? { top_p: args.topP } : {})),
         };
 
         try {
