@@ -453,8 +453,11 @@ class ProjectInstructionManager {
      */
     _onFileEvent(state, uri, kind) {
         const key = uri.toString();
+
         if (kind === 'delete') {
             const entry = this._ensureEntry(state, key);
+
+            entry.version++;
             entry.loaded = true;
             entry.exists = false;
             entry.text = '';
@@ -490,7 +493,8 @@ class ProjectInstructionManager {
             skippedTooLarge: false,
             outOfBounds: false,
             size: 0,
-            refreshPromise: undefined
+            refreshPromise: undefined,
+            version: 0
         };
 
         state.cache.set(key, entry);
@@ -526,10 +530,14 @@ class ProjectInstructionManager {
         const entry = this._ensureEntry(state, key);
 
         const prev = entry.refreshPromise ?? Promise.resolve();
+        const startVersion = entry.version;
 
         entry.refreshPromise = prev
             .then(async () => {
                 const res = await readInstructionFile(uri, state.folder, this._config, this._logDebug);
+
+                // drop stale refresh
+                if (entry.version !== startVersion) return;
 
                 entry.loaded = true;
                 entry.exists = res.exists;
@@ -565,7 +573,6 @@ class ProjectInstructionManager {
                 });
             })
             .catch(err => {
-                // Keep chain alive; do not throw from watcher callbacks.
                 this._logDebug('ProjectInstruction: refresh failed', safeErrorDetails(err));
             });
 

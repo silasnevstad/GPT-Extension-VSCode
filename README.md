@@ -39,7 +39,7 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 2. Press `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P` (Windows/Linux).
 3. Search for **"GPT: Set API Key"** and paste your key.
 
-> API keys are stored in VS Code SecretStorage (stored securely). Legacy keys previously stored in globalState are migrated automatically.
+> API keys are stored in VS Code SecretStorage (stored securely). Legacy keys previously stored in globalState are migrated automatically when VS Code Secret Storage is available.
 
 ---
 
@@ -158,13 +158,16 @@ GPT’s response can either replace the highlighted text or open in a new file, 
 
 ### `.gpt-instruction`
 
-- Multi-root: instructions resolve per workspace folder based on the active document.
-- Lookup modes:
-  - `workspaceRoot` (default): uses `<workspaceFolder>/.gpt-instruction`
-  - `nearestParent`: searches from the document directory up to the workspace folder root; the first `.gpt-instruction` found is used
-- Note: `nearestParent` may be more expensive in very large repositories (it watches for `.gpt-instruction` files recursively).
-- In `nearestParent`, an empty `.gpt-instruction` file suppresses parent directory instructions.
-
+* **Multi-root:** instructions resolve per workspace folder based on the active document.
+* **Lookup modes:**
+  * `workspaceRoot` (default): reads `<workspaceFolder>/.gpt-instruction`
+  * `nearestParent`: searches upward from the active file’s directory to the workspace root; the closest `.gpt-instruction` wins
+* **Nearest-parent behavior:**
+  * An empty `.gpt-instruction` *suppresses* parent directory instructions.
+  * This mode can be more expensive in very large repos because it uses a recursive watcher.
+* **Size limits:**
+  * `.gpt-instruction` is capped by the configured max size; content beyond the limit is truncated with a warning.
+  * In remote/virtual workspaces, extremely large files may be **ignored** instead of truncated (because `workspace.fs.readFile` must read the entire file first).
 <br>
 <div id="release-notes"></div>
 

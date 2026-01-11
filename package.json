@@ -51,7 +51,7 @@
           "default": 65536,
           "minimum": 1024,
           "maximum": 16777216,
-          "description": "Maximum number of bytes included from .gpt-instruction. Larger files are truncated with a warning."
+          "description": "Maximum number of bytes included from .gpt-instruction. On local file workspaces, larger files are truncated with a warning. On remote or virtual workspaces, very large files may be ignored for safety."
         }
       }
     },
