@@ -2,8 +2,8 @@
   "name": "gpthelper",
   "displayName": "GPT",
   "description": "Use OpenAI, Anthropic, or Gemini models inside VS Code",
-  "icon": "icon.jpg",
-  "version": "1.2.0",
+  "icon": "icon.png",
+  "version": "1.2.1",
   "engines": {
     "vscode": "^1.70.0"
   },

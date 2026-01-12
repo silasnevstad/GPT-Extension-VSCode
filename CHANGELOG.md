@@ -2,6 +2,9 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 1.2.1
+- Refreshed extension branding and media assets (new icon + updated demo).
+
 ## 1.2.0
 - Added multi-provider support (OpenAI / Anthropic / Gemini) with centralized routing and normalized error handling.
 - Added unified **GPT: Manage API Keys** (SecretStorage-backed) and deprecated **GPT: Set API Key** as an internal redirect only.
