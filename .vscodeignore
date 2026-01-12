@@ -20,6 +20,7 @@ tsconfig.json
 
 # Local / OS noise
 .DS_Store
+.gitignore
 Thumbs.db
 
 # Repo-only media/docs
