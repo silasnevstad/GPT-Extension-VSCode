@@ -3,7 +3,7 @@
   "displayName": "GPT",
   "description": "Use OpenAI, Anthropic, or Gemini models inside VS Code",
   "icon": "icon.png",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -12,6 +12,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onCommand:gpthelper.setup",
     "onCommand:gpthelper.askGPT",
     "onCommand:gpthelper.askGPTFile",
     "onCommand:gpthelper.setKey",
@@ -90,6 +91,10 @@
     },
     "commands": [
       {
+        "command": "gpthelper.setup",
+        "title": "GPT: Setup"
+      },
+      {
         "command": "gpthelper.askGPT",
         "title": "Ask GPT"
       },
@@ -99,7 +104,7 @@
       },
       {
         "command": "gpthelper.setKey",
-        "title": "GPT: Set API Key (Deprecated)"
+        "title": "GPT: Set API Key"
       },
       {
         "command": "gpthelper.manageApiKeys",
@@ -162,12 +167,6 @@
       }
     ],
     "menus": {
-      "commandPalette": [
-        {
-          "command": "gpthelper.setKey",
-          "when": "false"
-        }
-      ],
       "editor/context": [
         {
           "command": "gpthelper.askGPT",

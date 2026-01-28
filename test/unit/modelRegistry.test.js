@@ -29,6 +29,14 @@ describe('modelRegistry.js', () => {
         assert.strictEqual(items[1].id, 'a');
     });
 
+    it('buildPickerItems can omit refresh when includeRefresh=false', () => {
+        const models = [{ label: 'A', id: 'a' }];
+        const items = buildPickerItems(models, { includeRefresh: false });
+        assert.strictEqual(items[0].id, 'a');
+        assert.strictEqual(items[items.length - 1].id, '__custom__');
+        assert(items.every(i => i.id !== '__refresh__'));
+    });
+
     it('getDefaultModel returns per-provider default', () => {
         assert.strictEqual(getDefaultModel('openai'), 'gpt-5.2');
         assert.strictEqual(getDefaultModel('anthropic'), 'claude-sonnet-4-5-20250929');

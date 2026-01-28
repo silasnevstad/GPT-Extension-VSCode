@@ -102,16 +102,18 @@ function staticModels(providerId) {
 /**
  * Build QuickPick-ready model list with required fixed entries.
  * Order:
- *  1) Refresh
+ *  1) Refresh (optional)
  *  2) Models
  *  3) Custom
  *
  * @param {ModelItem[]} models
+ * @param {{ includeRefresh?: boolean }} [opts]
  * @returns {ModelItem[]}
  */
-function buildPickerItems(models) {
+function buildPickerItems(models, opts = {}) {
+    const includeRefresh = opts.includeRefresh !== false;
     return [
-        REFRESH_ITEM,
+        ...(includeRefresh ? [REFRESH_ITEM] : []),
         ...models,
         CUSTOM_MODEL_ITEM
     ];
@@ -142,6 +144,8 @@ module.exports = {
     isProviderId,
     staticModels,
     buildPickerItems,
+    CUSTOM_MODEL_ITEM,
+    REFRESH_ITEM,
     getDefaultModel,
     getKnownMaxOutputTokens
 };

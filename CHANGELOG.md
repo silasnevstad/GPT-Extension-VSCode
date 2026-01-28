@@ -2,6 +2,12 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 1.2.2
+- Added **GPT: Setup** for one-step onboarding.
+- Restored **GPT: Set API Key** as a first-class command.
+- Ask GPT now self-heals missing/invalid API keys and retries once.
+- Hide **Refresh model list (online)** until an API key is configured.
+
 ## 1.2.1
 - Refreshed extension branding and media assets (new icon + updated demo).
 

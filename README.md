@@ -4,279 +4,178 @@ Use OpenAI, Anthropic, or Gemini models inside Visual Studio Code
 
 ![](https://raw.githubusercontent.com/silasnevstad/GPT-Extension-VSCode/main/demo.gif?raw=true)
 
+## 🚀 Quick Start (30 seconds) <div id="getting-started"></div>
+
+**Prerequisite:** an API key from your provider (OpenAI / Anthropic / Gemini).
+
+1. Run **GPT: Setup**
+2. Select any text in the editor
+3. Press **Alt + Shift + I** (**Ask GPT**)
+
+> No key set? **Ask GPT** will prompt you to set one and automatically retry once.
+
+---
+
 ## Contents
-- [Supported Models](#models)
-- [Getting Started](#getting-started)
-- [Key Commands](#instructions)
-- [Additional Features](#features)
-- [Release Notes](#release-notes)
-- [Troubleshooting](#troubleshooting)
-- [Support the Project](#support)
-- [License](#license)
 
-<div id="models"></div>
+* [How it works](#how-it-works)
+* [How to use](#how-to-use)
+* [🔑 Setup & API keys](#setup--api-keys)
+* [🧠 Providers & models](#providers--models)
+* [🧩 Project instructions (.gpt-instruction)](#project-instructions)
+* [🧰 Commands](#commands)
+* [🛠️ Troubleshooting](#troubleshooting)
+* [💙 Support](#support)
+* [License](#license)
 
-## Supported Models
-Models are dynamically discovered (via **GPT: Change Model** → **Refresh model list (online)**).
+---
 
-You can always use **“Custom model id…”** to enter any model id manually.
+## How it works <div id="how-it-works"></div>
 
-<br>
-<div id="getting-started"></div>
+* You select text (or a full file) → GPT sends that content to the **currently selected model/provider** and returns a response.
+* Responses are shown either in a **new file** or by **replacing the selection** (configurable).
+* API keys are stored securely in **VS Code SecretStorage** when available.
 
-## 🚀 Getting Started
+### Privacy & security
 
-1. [Set your API key](#manage-api-keys).
-2. Highlight a question or code snippet in the editor (or use the entire file).
-3. Open the Command Palette (`Cmd + Shift + P` on macOS, `Ctrl + Shift + P` on Windows/Linux).
-4. Type **"Ask GPT"**.
+* **API keys:** stored in VS Code SecretStorage when available; otherwise stored for the current session only.
+* **Logging:** debug logs intentionally avoid secrets and prompt contents.
+* **Chat history:** kept in-memory during the session; you can export it manually.
 
-GPT’s response can either replace the highlighted text or open in a new file, depending on your [Output Mode](#gpt-change-output-mode).
+---
 
-<br>
-<div id="instructions"></div>
+## How to use <div id="how-to-use"></div>
 
-## 📝 Key Commands & Tools
+### Ask GPT (selection) — recommended default
 
-### 🛠 **GPT: Manage API Keys** <div id="manage-api-keys"></div>
+1. Select text
+2. Run **Ask GPT** (**Alt + Shift + I**)
 
-Manage all provider API keys in one place.
+### Ask GPT with File (whole file)
 
-1. Open the Command Palette  
-   (`Cmd + Shift + P` on macOS, `Ctrl + Shift + P` on Windows/Linux)
-2. Run **GPT: Manage API Keys**
-3. Select a provider:
-   - OpenAI
-   - Anthropic
-   - Gemini
-4. Choose an action:
-   - **Set / Update API key**
-   - **Remove API key**
+Use **Ask GPT with File** when you need full-file context (refactors, audits, “explain this file”).
 
-Each provider shows its current status (**Configured** or **Not set**).
+---
 
-> API keys are stored securely using VS Code SecretStorage.
+## 🔑 Setup & API keys <div id="setup--api-keys"></div>
+
+### GPT: Setup
+
+One onboarding flow:
+
+1. Choose a provider (OpenAI / Anthropic / Gemini)
+2. Set an API key if missing
+3. Optionally pick a model
+
+### GPT: Set API Key (fast path)
+
+Sets/updates the API key for the **currently selected provider**.
+
+### GPT: Manage API Keys
+
+Manage keys across providers (view status, set/update, remove).
 
 > Legacy OpenAI keys previously stored in globalState are migrated automatically when SecretStorage is available.
 
 ---
 
-### 🧩 Providers (OpenAI / Anthropic / Gemini)
+## 🧠 Providers & models <div id="providers--models"></div>
 
-- Default provider is **OpenAI**
-- Switch provider: **GPT: Change Provider**
-- API keys are managed centrally via **GPT: Manage API Keys**
-- `.gpt-instruction` is applied as a system instruction for all providers.
+* **Default provider:** OpenAI
+* Switch provider: **GPT: Change Provider**
+* Change model: **GPT: Change Model**
 
----
+### Model list behavior
 
-### 🛠 **Ask GPT**
-- **Command**: `Ask GPT`
-- **Shortcut**: `Alt + Shift + I`
-- **Usage**:
-  - Highlight code or text.
-  - Run **Ask GPT**.
-  - GPT replies with the answer in a new document or replaces the selected text (based on [Output Mode](#gpt-change-output-mode)).
+* Pick from a built-in list or use **Custom model id…**
+* **Refresh model list (online)** appears only after an API key is configured for the active provider
 
 ---
 
-### 🛠 **Ask GPT with File**
-- **Command**: `Ask GPT with File`
-- **Usage**:
-  - Sends the **entire file** contents to GPT instead of just highlighted text.
+## 🧩 Project instructions (.gpt-instruction) <div id="project-instructions"></div>
 
----
+Place a `.gpt-instruction` file in your workspace to automatically prefix each query with project-specific guidance.
 
-### 🛠 **GPT: Export Chat History**
-- **Command**: `GPT: Export Chat History`
-- **Usage**:
-  - Exports your entire conversation to a Markdown file—useful for sharing or later reference.
-
----
-
-### 🛠 **GPT: Show Chat History**
-- **Command**: `GPT: Show Chat History`
-- **Usage**:
-  - Displays your multi‑turn conversation as a Markdown document in a new pane.
-
----
-
-### 🛠 **GPT: Clear Chat History**
-- **Command**: `GPT: Clear Chat History`
-- **Usage**:
-  - Resets the entire conversation context, wiping all previous Q&A turns.
-
----
-
-### 🛠 **GPT: Change Model**
-- **Command**: `GPT: Change Model`
-- **Usage**:
-  - Pick from available models.
-  - Use **Refresh model list (online)** to fetch the latest models from your provider.
-  - Subsequent requests use the chosen model.
-
----
-
-### 🛠 **GPT: Change Token Limit**
-- **Command**: `GPT: Change Token Limit`
-- **Usage**:
-  - Sets how many tokens GPT can return (up to each model’s maximum).
-
----
-
-### 🛠 **GPT: Change Temperature**
-- **Command**: `GPT: Change Temperature`
-- **Usage**:
-  - Adjusts GPT’s “creativity” from `0.0` (deterministic) to `1.0` (more freeform).
-
----
-
-### 🛠 **GPT: Change TopP**
-- **Command**: `GPT: Change TopP`
-- **Usage**:
-  - Limits GPT to top‑probability tokens from `0.0`–`1.0`.
-  - Higher values allow more diverse tokens.
-
----
-
-### 🛠 **GPT: Change Context Mode** <div id="gpt-change-context-mode"></div>
-- **Command**: `GPT: Change Context Mode`
-- **Options**:
-  - **No Context** – Ignores all previous messages, each query is single‑turn.
-  - **Last N Messages** – Considers only the most recent *N* turns from the conversation.
-  - **Full** – Considers the entire conversation for each new request.
-- **Usage**:
-  - Ideal for switching between single question/answer usage and deeper, multi‑turn conversation.
-
----
-
-### 🛠 **GPT: Set Context Length**
-- **Command**: `GPT: Set Context Length`
-- **Usage**:
-  - If **Last N Messages** context mode is active, specify how many recent messages GPT considers.
-
----
-
-### 🛠 **GPT: Change Output Mode** <div id="gpt-change-output-mode"></div>
-- **Command**: `GPT: Change Output Mode`
-- **Usage**:
-  - Toggles between **"Replace Selection"** or **"New File"**.
-  - In “Replace Selection” mode, GPT’s response overwrites the text you highlighted.
-  - In “New File” mode, GPT’s response opens in a fresh editor tab.
-
----
-
-### 🛠 **GPT: Change Debug Mode**
-- **Command**: `GPT: Change Debug Mode`
-- **Usage**:
-  - Shows or hides detailed logs in the **GPT Debug** output channel for troubleshooting.
-
----
-
-<br>
-<div id="features"></div>
-
-## ✨ Additional Features
-
-- **Flexible Conversation Context**: Choose no context, the last N messages, or the entire session for each query.
-- **Error & Rate Limit Handling**: Clear messages for invalid keys, missing model, or rate limits.
-- **Cross‑Language Support**: Works for code or text in any language recognized by VSCode.
-- **API Key Storage**: Stores provider API keys securely in VS Code SecretStorage and migrates legacy OpenAI keys previously stored in globalState.
-- **Project Instructions**: Place a `.gpt-instruction` file in your workspace to automatically prefix each query with custom guidance.
-
-### `.gpt-instruction`
-
-* **Multi-root:** instructions resolve per workspace folder based on the active document.
+* **Multi-root:** resolves per workspace folder based on the active document.
 * **Lookup modes:**
+
   * `workspaceRoot` (default): reads `<workspaceFolder>/.gpt-instruction`
-  * `nearestParent`: searches upward from the active file’s directory to the workspace root; the closest `.gpt-instruction` wins
+  * `nearestParent`: closest parent `.gpt-instruction` wins
 * **Nearest-parent behavior:**
-  * An empty `.gpt-instruction` *suppresses* parent directory instructions.
-  * This mode can be more expensive in very large repos because it uses a recursive watcher.
+
+  * An empty `.gpt-instruction` suppresses parent instructions.
+  * This mode can be more expensive in very large repos (recursive watcher).
 * **Size limits:**
-  * `.gpt-instruction` is capped by the configured max size; content beyond the limit is truncated with a warning.
-  * In remote/virtual workspaces, extremely large files may be **ignored** instead of truncated (because `workspace.fs.readFile` must read the entire file first).
-<br>
-<div id="release-notes"></div>
 
-## 📒 Release Notes
+  * Content beyond the configured max is truncated with a warning.
+  * In remote/virtual workspaces, very large files may be ignored for safety.
 
-### 1.1.1
-- **Per-Project Instructions**: Queries are prefixed with the contents of `.gpt-instruction` if present in the workspace.
+---
 
-### 1.1.0
-- **Conversation Context Modes**:
-  - **No Context**, **Last N Messages**, or **Full** conversation reference.
-  - **Set Context Length** for Last N mode.
-- Support for latest models (`o3-mini`).
-- **Change temperature** and **top_p** settings.
-- **Export chat history** to a Markdown file.
-- **Insert response as comment** in your code.
+## 🧰 Commands <div id="commands"></div>
 
-### 1.0.0
-- Support for newest models (`o1`, etc.).
-- Improved chat history and advanced error handling.
-- Keyboard shortcut (`Alt + Shift + I`).
+### Core
 
-#### 0.4.8
-- Added newer models (`o1-preview`, `o1-mini`).
-- Enhanced error/debug messages.
+* **GPT: Setup** — onboarding
+* **Ask GPT** — run on selection (**Alt + Shift + I**)
+* **Ask GPT with File** — run on entire file
+* **GPT: Set API Key** — set key for active provider
+* **GPT: Manage API Keys** — manage keys across providers
 
-#### 0.4.7
-- Introduced debug mode (logs in `GPT Debug` panel).
-- Switched to axios for HTTP requests.
+### Provider & model
 
-#### 0.4.2
-- Removed Davinci (deprecated).
-- Added GPT‑4o model.
+* **GPT: Change Provider**
+* **GPT: Change Model**
+* **GPT: Change Token Limit**
 
-#### 0.4.0
-- Added GPT‑4‑Turbo model.
+### Conversation & output
 
-#### 0.3.4
-- API keys saved securely across sessions.
+* **GPT: Change Output Mode** — Replace Selection vs New File
+* **GPT: Change Context Mode** — No Context / Last N / Full
+* **GPT: Set Context Length**
+* **GPT: Export Chat History**
+* **GPT: Show Chat History**
+* **GPT: Clear Chat History**
 
-#### 0.3.0
-- Removed shared API Key usage.
+### Debug
 
-#### 0.2.2
-- Compatible with VSCode 1.7+.
-- Basic multi‑turn chat.
-- Added GPT‑4.
+* **GPT: Change Debug Mode** — show/hide the *GPT Debug* output channel
 
-#### 0.1.3
-- Handled errors for shared API key usage.
+---
 
-<br>
+## 🛠️ Troubleshooting <div id="troubleshooting"></div>
 
-<div id="troubleshooting"></div>
+### Invalid or missing API key
 
-## ⚙️ Troubleshooting
+* Run **GPT: Setup** (recommended) or **GPT: Set API Key**
+* Confirm provider via **GPT: Change Provider**
 
-- **Invalid or Missing API Key**: Run **GPT: Manage API Keys** and verify the key for the active provider.
-- **Rate Limits**: If usage is too high, wait or check your [OpenAI usage dashboard](https://platform.openai.com/account/usage).
-- **Debugging**: Toggle **"GPT: Change Debug Mode"** to see request logs in **GPT Debug**.
+### “Model not available”
 
-<br>
+* Run **GPT: Change Model**
+* If a key is configured, use **Refresh model list (online)** or choose **Custom model id…**
 
-<div id="support"></div>
+### Rate limits / quota
 
-## ❤️ Support the Project
+* Retry later or check your provider plan/quota.
+* OpenAI usage dashboard: [https://platform.openai.com/account/usage](https://platform.openai.com/account/usage)
 
-GPT is free and open-source. If this extension saves you time or helps your workflow,
-you can optionally support my work on it.
+### Debugging
 
-Support helps cover maintenance, testing against new model APIs,
-and ongoing improvements (but the extension will remain free).
+* Toggle **GPT: Change Debug Mode**
+* Check the *GPT Debug* output channel (no secrets or prompts are logged)
 
-- [☕ **Buy Me a Coffee**](https://buymeacoffee.com/silasnevstad)
-- [⭐ **GitHub Sponsors**](https://github.com/sponsors/silasnevstad)
+---
 
+## Support <div id="support"></div>
 
-<div id="license"></div>
+If this extension saves you time, you can support ongoing maintenance:
 
-## License
+* ☕ Buy Me a Coffee: [https://buymeacoffee.com/silasnevstad](https://buymeacoffee.com/silasnevstad)
+* ⭐ GitHub Sponsors: [https://github.com/sponsors/silasnevstad](https://github.com/sponsors/silasnevstad)
 
-[MIT License](LICENSE) – Open‑source for flexibility and contributions.
+---
 
-<br>
+## License <div id="license"></div>
+
+MIT License — see [LICENSE](LICENSE)

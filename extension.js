@@ -45,6 +45,101 @@ function warnSecretStorageOnce() {
     );
 }
 
+/**
+ * Prompt for a provider API key and store it via router (SecretStorage when available).
+ * @param {'openai'|'anthropic'|'gemini'} providerId
+ * @param {{ reason?: 'missing'|'invalid'|'manual' }} [opts]
+ * @returns {Promise<boolean>}
+ */
+async function promptSetApiKeyForProvider(providerId, opts = {}) {
+    if (!llmRouter) {
+        vscode.window.showErrorMessage('GPT extension is not initialized yet.');
+        return false;
+    }
+
+    const providerLabel = llmRouter.getProviderDisplayName(providerId);
+    const existing = await llmRouter.getApiKey(providerId);
+
+    const prompt =
+        opts.reason === 'invalid'
+            ? `Enter a valid ${providerLabel} API key`
+            : existing
+                ? `Enter a new ${providerLabel} API key`
+                : `Enter your ${providerLabel} API key`;
+
+    const newKey = await vscode.window.showInputBox({
+        prompt,
+        password: true,
+        ignoreFocusOut: true
+    });
+
+    if (!newKey || !newKey.trim()) return false;
+
+    try {
+        const {persisted} = await llmRouter.setApiKey(providerId, newKey.trim());
+        vscode.window.showInformationMessage(
+            persisted
+                ? `${providerLabel} API key saved.`
+                : `${providerLabel} API key set for this session only (Secret Storage unavailable).`
+        );
+        return true;
+    } catch (err) {
+        vscode.window.showErrorMessage(`Failed to save ${providerLabel} API key.`);
+        logDebug('Set API key failed', safeErrorDetails(err));
+        return false;
+    }
+}
+
+async function setupHandler() {
+    if (!llmRouter) {
+        vscode.window.showErrorMessage('GPT extension is not initialized yet.');
+        return;
+    }
+
+    const currentProvider = llmRouter.getActiveProviderId();
+
+    const pick = await vscode.window.showQuickPick(
+        [
+            {label: 'OpenAI (recommended)', value: 'openai', description: 'Simplest setup; default provider'},
+            {label: 'Anthropic', value: 'anthropic', description: 'Claude models'},
+            {label: 'Gemini', value: 'gemini', description: 'Google Gemini models'}
+        ].map(p => ({
+            label: p.value === currentProvider ? `$(check) ${p.label}` : p.label,
+            description: p.description,
+            value: p.value,
+            picked: p.value === currentProvider
+        })),
+        {placeHolder: 'Choose a default provider'}
+    );
+
+    if (!pick) return;
+
+    await vscode.workspace
+        .getConfiguration('gpthelper')
+        .update('provider', pick.value, vscode.ConfigurationTarget.Global);
+
+    const hasKey = Boolean(await llmRouter.getApiKey(pick.value));
+    if (!hasKey) {
+        const ok = await promptSetApiKeyForProvider(pick.value, {reason: 'missing'});
+        if (!ok) return;
+    }
+
+    const next = await vscode.window.showQuickPick(
+        [
+            {label: 'Done', value: 'done', description: 'Use defaults for model and settings'},
+            {label: 'Select model…', value: 'model', description: 'Pick a model for the active provider'}
+        ],
+        {placeHolder: 'Setup complete. Optional: choose a model now?'}
+    );
+    if (!next) return;
+
+    if (next.value === 'model') {
+        await vscode.commands.executeCommand('gpthelper.changeModel');
+    }
+
+    vscode.window.showInformationMessage('GPT setup complete. Highlight text and run “Ask GPT” (Alt+Shift+I).');
+}
+
 async function manageApiKeysHandler() {
     if (!llmRouter) {
         vscode.window.showErrorMessage('GPT extension is not initialized yet.');
@@ -173,6 +268,33 @@ async function askGPTHandler(useWholeFile = false) {
         return;
     }
 
+    // If key is missing, onboard before showing progress UI.
+    const preProvider = llmRouter.getActiveProviderId();
+    const preLabel = llmRouter.getProviderDisplayName(preProvider);
+    const preKey = await llmRouter.getApiKey(preProvider);
+
+    if (!preKey) {
+        const action = await vscode.window.showWarningMessage(
+            `${preLabel} API key is not configured.`,
+            'Set API Key',
+            'Run Setup',
+            'Cancel'
+        );
+
+        if (action === 'Set API Key') {
+            const ok = await promptSetApiKeyForProvider(preProvider, {reason: 'missing'});
+            if (!ok) return;
+        } else if (action === 'Run Setup') {
+            await vscode.commands.executeCommand('gpthelper.setup');
+            const postProvider = llmRouter.getActiveProviderId();
+            const postKey = await llmRouter.getApiKey(postProvider);
+            if (!postKey) return;
+        } else {
+            return;
+        }
+    }
+
+
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: 'Asking GPT...',
@@ -190,75 +312,127 @@ async function askGPTHandler(useWholeFile = false) {
 
             if (token.isCancellationRequested) return;
 
+            const sendArgs = {
+                userPrompt: queryText,
+                system: instruction,
+                history: chatHistory,
+                contextMode,
+                contextLength,
+                temperature,
+                topP,
+                signal: abortController.signal,
+                debug: debugMode
+            };
+
             let result;
+            let attemptedAuthRecovery = false;
+
             try {
-                result = await llmRouter.send({
-                    userPrompt: queryText,
-                    system: instruction,
-                    history: chatHistory,
-                    contextMode,
-                    contextLength,
-                    temperature,
-                    topP,
-                    signal: abortController.signal,
-                    debug: debugMode
-                });
+                result = await llmRouter.send(sendArgs);
             } catch (err) {
+                let effectiveErr = err;
+
+                // cancellation: keep current behavior
                 if (token.isCancellationRequested || abortController.signal.aborted || isCancellationError(err)) {
                     logDebug('LLM request canceled');
                     return;
                 }
 
-                const providerId = isLLMError(err) && typeof err.provider === 'string'
-                    ? err.provider
-                    : llmRouter.getActiveProviderId();
+                // Self-heal Auth once
+                if (!attemptedAuthRecovery && isLLMError(err) && err.kind === 'Auth') {
+                    attemptedAuthRecovery = true;
 
-                const model = llmRouter.getModel(providerId);
+                    const providerId = typeof err.provider === 'string'
+                        ? err.provider
+                        : llmRouter.getActiveProviderId();
 
-                const msg = toUserMessage(
-                    isLLMError(err) ? err : new LLMError({
-                        kind: 'Unknown',
-                        provider: providerId,
-                        message: 'Unknown error.'
-                    }),
-                    {
-                        providerLabel: llmRouter.getProviderDisplayName(providerId),
-                        model
-                    }
-                );
-
-                if (isLLMError(err) && err.kind === 'NotFoundModel') {
                     const providerLabel = llmRouter.getProviderDisplayName(providerId);
-                    const apiKey = await llmRouter.getApiKey(providerId);
-                    if (apiKey && extensionContext) {
-                        // one background refresh, no await
-                        getModels({providerId, context: extensionContext, apiKey, force: true}).catch(() => {
-                        });
-                    }
+
                     const action = await vscode.window.showWarningMessage(
-                        `Model not available for ${providerLabel} (${model}).`,
-                        'Open GPT: Change Model',
+                        `${providerLabel} API key is missing or invalid.`,
+                        'Update API Key',
+                        'Run Setup',
                         'Cancel'
                     );
-                    if (action === 'Open GPT: Change Model') {
-                        vscode.commands.executeCommand('gpthelper.changeModel');
+
+                    if (action === 'Update API Key') {
+                        const ok = await promptSetApiKeyForProvider(providerId, { reason: 'invalid' });
+                        if (!ok) return;
+                    } else if (action === 'Run Setup') {
+                        await vscode.commands.executeCommand('gpthelper.setup');
+                        const postProvider = llmRouter.getActiveProviderId();
+                        const postKey = await llmRouter.getApiKey(postProvider);
+                        if (!postKey) return;
+                    } else {
+                        return;
                     }
-                    return;
-                } else if (isLLMError(err) && err.kind === 'RateLimit') {
-                    vscode.window.showWarningMessage(msg);
-                } else {
-                    vscode.window.showErrorMessage(msg);
+
+                    if (token.isCancellationRequested || abortController.signal.aborted) return;
+
+                    // retry exactly once
+                    try {
+                        result = await llmRouter.send(sendArgs);
+                    } catch (retryErr) {
+                        effectiveErr = retryErr;
+                    }
                 }
 
-                logDebug('LLM request failed', {
-                    provider: providerId,
-                    model,
-                    kind: isLLMError(err) ? err.kind : 'Unknown',
-                    status: isLLMError(err) ? err.status : undefined,
-                    providerCode: isLLMError(err) ? err.providerCode : undefined,
-                    requestId: isLLMError(err) ? err.requestId : undefined
-                });
-                return;
+                if (!result) {
+                    const providerId = isLLMError(effectiveErr) && typeof effectiveErr.provider === 'string'
+                        ? effectiveErr.provider
+                        : llmRouter.getActiveProviderId();
+
+                    const model = llmRouter.getModel(providerId);
+
+                    const msg = toUserMessage(
+                        isLLMError(effectiveErr)
+                            ? effectiveErr
+                            : new LLMError({
+                                kind: 'Unknown',
+                                provider: providerId,
+                                message: 'Unknown error.'
+                            }),
+                        {
+                            providerLabel: llmRouter.getProviderDisplayName(providerId),
+                            model,
+                            commandHints: {
+                                setKey: 'GPT: Set API Key',
+                                changeModel: 'GPT: Change Model'
+                            }
+                        }
+                    );
+
+                    if (isLLMError(effectiveErr) && effectiveErr.kind === 'NotFoundModel') {
+                        const providerLabel = llmRouter.getProviderDisplayName(providerId);
+                        const apiKey = await llmRouter.getApiKey(providerId);
+                        if (apiKey && extensionContext) {
+                            getModels({ providerId, context: extensionContext, apiKey, force: true }).catch(() => {});
+                        }
+                        const action = await vscode.window.showWarningMessage(
+                            `Model not available for ${providerLabel} (${model}).`,
+                            'Open GPT: Change Model',
+                            'Cancel'
+                        );
+                        if (action === 'Open GPT: Change Model') {
+                            vscode.commands.executeCommand('gpthelper.changeModel');
+                        }
+                        return;
+                    } else if (isLLMError(effectiveErr) && effectiveErr.kind === 'RateLimit') {
+                        vscode.window.showWarningMessage(msg);
+                    } else {
+                        vscode.window.showErrorMessage(msg);
+                    }
+
+                    logDebug('LLM request failed', {
+                        provider: providerId,
+                        model,
+                        kind: isLLMError(effectiveErr) ? effectiveErr.kind : 'Unknown',
+                        status: isLLMError(effectiveErr) ? effectiveErr.status : undefined,
+                        providerCode: isLLMError(effectiveErr) ? effectiveErr.providerCode : undefined,
+                        requestId: isLLMError(effectiveErr) ? effectiveErr.requestId : undefined
+                    });
+                    return;
+                }
             }
             const duration = Date.now() - startTime;
             logDebug('GPT response time', {durationMs: duration});
@@ -391,6 +565,9 @@ async function activate(context) {
         // Ask GPT (entire file)
         vscode.commands.registerCommand('gpthelper.askGPTFile', () => askGPTHandler(true)),
 
+        // Setup / onboarding
+        vscode.commands.registerCommand('gpthelper.setup', setupHandler),
+
         // Export conversation
         vscode.commands.registerCommand('gpthelper.exportChatHistory', exportChatHistory),
 
@@ -441,7 +618,7 @@ async function activate(context) {
                     'Cancel'
                 );
                 if (action === 'Set API Key') {
-                    vscode.commands.executeCommand('gpthelper.manageApiKeys');
+                    await promptSetApiKeyForProvider(pick.value, { reason: 'missing' });
                 }
             }
 
@@ -469,7 +646,8 @@ async function activate(context) {
 
             const currentModel = llmRouter.getModel(providerId);
 
-            const items = buildPickerItems(models).map(m => {
+            const includeRefresh = Boolean(apiKey);
+            const items = buildPickerItems(models, { includeRefresh }).map(m => {
                 const isCurrent = m.id === currentModel;
 
                 return {
@@ -492,6 +670,10 @@ async function activate(context) {
             /** @type {string} */
             let modelId = pick._modelId;
             if (modelId === '__refresh__') {
+                if (!apiKey) {
+                    vscode.window.showWarningMessage('Set an API key to refresh models online.');
+                    return;
+                }
                 const controller = new AbortController();
                 await vscode.window.withProgress({
                     location: vscode.ProgressLocation.Notification,
@@ -628,9 +810,14 @@ async function activate(context) {
         // Unified API key manager
         vscode.commands.registerCommand('gpthelper.manageApiKeys', manageApiKeysHandler),
 
-        // Legacy command: redirect only
-        vscode.commands.registerCommand('gpthelper.setKey', () => {
-            vscode.commands.executeCommand('gpthelper.manageApiKeys');
+        // GPT: Set API Key (alias, visible in UX)
+        vscode.commands.registerCommand('gpthelper.setKey', async () => {
+            if (!llmRouter) {
+                vscode.window.showErrorMessage('GPT extension is not initialized yet.');
+                return;
+            }
+            const providerId = llmRouter.getActiveProviderId();
+            await promptSetApiKeyForProvider(providerId, {reason: 'manual'});
         }),
 
         // Change max output tokens (0 => default/max)
