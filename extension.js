@@ -100,7 +100,7 @@ async function setupHandler() {
 
     const pick = await vscode.window.showQuickPick(
         [
-            {label: 'OpenAI (recommended)', value: 'openai', description: 'Simplest setup; default provider'},
+            {label: 'OpenAI', value: 'openai', description: 'OpenAI models'},
             {label: 'Anthropic', value: 'anthropic', description: 'Claude models'},
             {label: 'Gemini', value: 'gemini', description: 'Google Gemini models'}
         ].map(p => ({
