@@ -93,27 +93,28 @@ function normalizeError(err, _ctx) {
     let kind = 'Unknown';
     let isRetryable = false;
 
-    if (status === 401) {
+    if (providerCode === 'model_not_found') {
+        kind = 'NotFoundModel';
+    } else if (status === 401) {
         kind = 'Auth';
     } else if (status === 403) {
-        // 403 can also indicate unsupported region (OpenAI error codes guide)
+        // 403 can also indicate unsupported region
         kind = 'Auth';
     } else if (status === 404) {
-        // Distinguish model-not-found vs endpoint-not-found
-        if (providerCode === 'model_not_found' || msg.includes('model') && msg.includes('not found')) {
-            kind = 'NotFoundModel';
-        } else {
-            kind = 'NotFoundEndpoint';
-        }
+        kind = 'NotFoundEndpoint';
     } else if (status === 429) {
-        // Rate limit vs quota guidance (OpenAI error codes guide)
+        // Rate limit vs quota guidance
         kind = 'RateLimit';
         isRetryable = true;
         if (providerCode === 'insufficient_quota' || msg.includes('check your plan and billing details')) {
             isRetryable = false;
         }
     } else if (status === 400) {
-        if (msg.includes('context') && msg.includes('length') || msg.includes('too many tokens') || msg.includes('maximum context')) {
+        const isContextTooLarge =
+            (msg.includes('context') && msg.includes('length')) ||
+            msg.includes('too many tokens') ||
+            msg.includes('maximum context');
+        if (isContextTooLarge) {
             kind = 'ContextTooLarge';
         } else {
             kind = 'InvalidRequest';
@@ -187,7 +188,7 @@ const provider = {
             };
         } catch (err) {
             if (isCancellationError(err)) throw err;
-            throw normalizeError(err, { provider: 'openai', model: args.model });
+            throw normalizeError(err, {provider: 'openai', model: args.model});
         }
     }
 };
