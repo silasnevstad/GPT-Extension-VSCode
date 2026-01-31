@@ -55,6 +55,8 @@ Use OpenAI, Anthropic, or Gemini models inside Visual Studio Code
 
 Use **Ask GPT with File** when you need full-file context (refactors, audits, “explain this file”).
 
+> Tip: Right-click an editor selection → **GPT Workflows** submenu.
+
 ---
 
 ## 🔑 Setup & API keys <div id="setup--api-keys"></div>
@@ -119,6 +121,10 @@ Place a `.gpt-instruction` file in your workspace to automatically prefix each q
 * **GPT: Setup** — onboarding
 * **Ask GPT** — run on selection (**Alt + Shift + I**)
 * **Ask GPT with File** — run on entire file
+* **Ask GPT: Explain Selection**
+* **Ask GPT: Refactor Selection**
+* **Ask GPT: Fix Selection**
+* **Ask GPT: Add Docstring/Comments**
 * **GPT: Set API Key** — set key for active provider
 * **GPT: Manage API Keys** — manage keys across providers
 

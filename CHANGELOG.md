@@ -2,6 +2,9 @@
 
 All notable changes to the "GPT" extension will be documented in this file.
 
+## 1.2.3
+- Added editor context menu “GPT Workflows” (Explain/Refactor/Fix/Add Comments).
+
 ## 1.2.2
 - Added **GPT: Setup** for one-step onboarding.
 - Restored **GPT: Set API Key** as a first-class command.

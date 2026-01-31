@@ -3,7 +3,7 @@
   "displayName": "GPT",
   "description": "Use OpenAI, Anthropic, or Gemini models inside VS Code",
   "icon": "icon.png",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -15,6 +15,10 @@
     "onCommand:gpthelper.setup",
     "onCommand:gpthelper.askGPT",
     "onCommand:gpthelper.askGPTFile",
+    "onCommand:gpthelper.explainSelection",
+    "onCommand:gpthelper.refactorSelection",
+    "onCommand:gpthelper.fixSelection",
+    "onCommand:gpthelper.addDocComments",
     "onCommand:gpthelper.setKey",
     "onCommand:gpthelper.manageApiKeys",
     "onCommand:gpthelper.changeProvider",
@@ -103,6 +107,22 @@
         "title": "Ask GPT with File"
       },
       {
+        "command": "gpthelper.explainSelection",
+        "title": "Ask GPT: Explain Selection"
+      },
+      {
+        "command": "gpthelper.refactorSelection",
+        "title": "Ask GPT: Refactor Selection"
+      },
+      {
+        "command": "gpthelper.fixSelection",
+        "title": "Ask GPT: Fix Selection"
+      },
+      {
+        "command": "gpthelper.addDocComments",
+        "title": "Ask GPT: Add Docstring/Comments"
+      },
+      {
         "command": "gpthelper.setKey",
         "title": "GPT: Set API Key"
       },
@@ -159,6 +179,12 @@
         "title": "GPT: Clear Chat History"
       }
     ],
+    "submenus": [
+      {
+        "id": "gpthelper.editorWorkflows",
+        "label": "GPT Workflows"
+      }
+    ],
     "keybindings": [
       {
         "command": "gpthelper.askGPT",
@@ -174,8 +200,30 @@
           "when": "editorHasSelection"
         },
         {
-          "command": "gpthelper.showChatHistory",
+          "submenu": "gpthelper.editorWorkflows",
           "group": "gptCommands",
+          "when": "editorHasSelection"
+        }
+      ],
+      "gpthelper.editorWorkflows": [
+        {
+          "command": "gpthelper.explainSelection",
+          "group": "gptWorkflows@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "gpthelper.refactorSelection",
+          "group": "gptWorkflows@2",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "gpthelper.fixSelection",
+          "group": "gptWorkflows@3",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "gpthelper.addDocComments",
+          "group": "gptWorkflows@4",
           "when": "editorHasSelection"
         }
       ]

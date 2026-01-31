@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const {createAskGptHandler} = require('./askGPT');
+const {createEditorActionHandler} = require('./editorActions');
 const {createSetupHandler} = require('./setup');
 const {createManageApiKeysHandler} = require('./manageApiKeys');
 const {createSetKeyAliasHandler} = require('./setApiKeyAlias');
@@ -33,6 +34,10 @@ function registerCommands(runtime, context) {
     const clearChatHistoryHandler = createClearChatHistoryHandler(runtime);
     const toggleDebugHandler = createToggleDebugHandler(runtime);
     const toggleOutputModeHandler = createToggleOutputModeHandler(runtime);
+    const explainSelectionHandler = createEditorActionHandler(runtime, 'explainSelection');
+    const refactorSelectionHandler = createEditorActionHandler(runtime, 'refactorSelection');
+    const fixSelectionHandler = createEditorActionHandler(runtime, 'fixSelection');
+    const addDocCommentsHandler = createEditorActionHandler(runtime, 'addDocComments');
 
     const commands = [
         // Ask GPT (selection)
@@ -40,6 +45,12 @@ function registerCommands(runtime, context) {
 
         // Ask GPT (entire file)
         vscode.commands.registerCommand('gpthelper.askGPTFile', () => askGptHandler(true)),
+
+        // Editor actions (selection)
+        vscode.commands.registerCommand('gpthelper.explainSelection', explainSelectionHandler),
+        vscode.commands.registerCommand('gpthelper.refactorSelection', refactorSelectionHandler),
+        vscode.commands.registerCommand('gpthelper.fixSelection', fixSelectionHandler),
+        vscode.commands.registerCommand('gpthelper.addDocComments', addDocCommentsHandler),
 
         // Setup / onboarding
         vscode.commands.registerCommand('gpthelper.setup', setupHandler),
